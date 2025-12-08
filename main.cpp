@@ -39,7 +39,9 @@ int main() {
     std::cout << "\texecuting local search..." << std::endl;
     iterated_local_search(solution_set, graph, weighted);
 
-    std::cout << "\t" << (is_valid(graph, solution_set) ? "Valid" : "Invalid") << " Solution" << std::endl;
+    std::cout << "\tfound solution of size: " <<
+      (weighted ? get_weight(solution_set, graph) : solution_set.get_size()) << std::endl;
+    std::cout << "\t" << (is_valid(graph, solution_set) ? "Valid" : "Invalid") << " Solution" << std::endl << std::endl;
 
     std::cout << "\texecuting 2-1 swaps...";
     execute_2_1_swap(graph, solution_set, weighted);
