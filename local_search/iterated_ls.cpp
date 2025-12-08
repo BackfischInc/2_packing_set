@@ -1,6 +1,5 @@
 #include "iterated_ls.hpp"
 #include "local_search.hpp"
-#include "../verifier/verifier.hpp"
 
 #include <iostream>
 #include <random>
@@ -8,10 +7,10 @@
 void iterated_local_search(packing_set& solution_set, const csr_graph& graph, const bool& weighted) {
   packing_set best_solution(graph.amount_nodes());
 
-  for (int i = 0; i < 10; ++i) {
+  for (int i = 0; i < 5; ++i) {
     printf("\titeration: %2d\n", i+1);
-    packing_set working_set(graph.amount_nodes());
-    working_set.copy(best_solution);
+    packing_set working_set(best_solution);
+
     unsigned long long iterations = graph.amount_nodes() * static_cast<unsigned long long>(0x5F);
 
     if (i != 0) {
@@ -20,7 +19,8 @@ void iterated_local_search(packing_set& solution_set, const csr_graph& graph, co
 
       if (working_set.get_size() > best_solution.get_size()) {
         std::cout << "\t===== found better solution while perturbing lol :D =====" << std::endl;
-        best_solution = working_set;
+        best_solution.~packing_set();
+        new(&best_solution) packing_set(working_set);
       }
     }
 
@@ -31,13 +31,10 @@ void iterated_local_search(packing_set& solution_set, const csr_graph& graph, co
 
     if (working_set.get_size() > best_solution.get_size()) {
       std::cout << "\t===== found better solution c: =====\n" << std::endl;
-      best_solution.copy(working_set);
+      best_solution.~packing_set();
+      new(&best_solution) packing_set(working_set);
     } else {
       std::cout << "\t===== didn't find better solution :c =====\n" << std::endl;
-    }
-
-    if (!is_valid(graph, solution_set)) {
-      std::cout << "FUCK" << std::endl;
     }
   }
 

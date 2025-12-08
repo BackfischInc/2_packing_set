@@ -23,10 +23,3 @@ void packing_set::remove_solution_nodes(const std::vector<int>& ids, const csr_g
     remove_solution_node(id, graph);
   }
 }
-
-void packing_set::copy(const packing_set& other) {
-  for (int i = 0; i < this->set_neighbors.size(); ++i) {
-    this->set_neighbors[i] = other.set_neighbors[i];
-    this->solution_set[i] = other.solution_set[i];
-  }
-}

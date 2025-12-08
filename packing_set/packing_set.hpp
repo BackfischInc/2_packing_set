@@ -18,8 +18,6 @@ public:
 
   packing_set(const packing_set&) = default;
 
-  void copy(const packing_set& other);
-
   [[nodiscard]] int get_size() const { return size; }
 
   void insert(const int& index) {
