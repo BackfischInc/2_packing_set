@@ -38,15 +38,20 @@ public:
     return solution_set[index];
   }
 
+  [[nodiscard]] int get_neighbor(const int& id) const {
+    return set_neighbors[id];
+  }
+
   void add_solution_node(const int& id, const std::span<const int>& neighbors);
 
   void remove_solution_node(const int& id, const csr_graph& graph);
 
   void remove_solution_nodes(const std::vector<int>& ids, const csr_graph& graph);
 
-  [[nodiscard]] int get_neighbor(const int& id) const {
-    return set_neighbors[id];
-  }
+  [[nodiscard]] std::vector<int> get_set_partners(const int& curr, const std::span<const int>& nodes) const;
+
+  [[nodiscard]] int get_weight(const csr_graph& graph) const;
+  static int get_weight(const std::vector<int>& set, const csr_graph& graph);
 };
 
 #endif

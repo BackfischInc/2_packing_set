@@ -8,7 +8,7 @@ void iterated_local_search(packing_set& solution_set, const csr_graph& graph, co
   packing_set best_solution(graph.amount_nodes());
 
   for (int i = 0; i < 5; ++i) {
-    printf("\titeration: %2d\n", i+1);
+    printf("\titeration: %2d\n", i + 1);
     packing_set working_set(best_solution);
 
     unsigned long long iterations = graph.amount_nodes() * static_cast<unsigned long long>(0x5F);
@@ -17,10 +17,18 @@ void iterated_local_search(packing_set& solution_set, const csr_graph& graph, co
       iterations = graph.amount_nodes() * static_cast<unsigned long long>(0xF);
       perturb_solution(graph, working_set);
 
-      if (working_set.get_size() > best_solution.get_size()) {
-        std::cout << "\t===== found better solution while perturbing lol :D =====" << std::endl;
-        best_solution.~packing_set();
-        new(&best_solution) packing_set(working_set);
+      if (!weighted) {
+        if (working_set.get_size() > best_solution.get_size()) {
+          std::cout << "\t===== found better solution while perturbing lol :D =====" << std::endl;
+          best_solution.~packing_set();
+          new(&best_solution) packing_set(working_set);
+        }
+      } else {
+        if (working_set.get_weight(graph) > best_solution.get_weight(graph)) {
+          std::cout << "\t===== found better solution while perturbing lol :D =====" << std::endl;
+          best_solution.~packing_set();
+          new(&best_solution) packing_set(working_set);
+        }
       }
     }
 
@@ -29,12 +37,22 @@ void iterated_local_search(packing_set& solution_set, const csr_graph& graph, co
                                     i == 0 ? 0.9 : 0.5);
     local_search(graph, working_set, weighted, iterations, temperature);
 
-    if (working_set.get_size() > best_solution.get_size()) {
-      std::cout << "\t===== found better solution c: =====\n" << std::endl;
-      best_solution.~packing_set();
-      new(&best_solution) packing_set(working_set);
+    if (!weighted) {
+      if (working_set.get_size() > best_solution.get_size()) {
+        std::cout << "\t===== found better solution c: =====\n" << std::endl;
+        best_solution.~packing_set();
+        new(&best_solution) packing_set(working_set);
+      } else {
+        std::cout << "\t===== didn't find better solution :c =====\n" << std::endl;
+      }
     } else {
-      std::cout << "\t===== didn't find better solution :c =====\n" << std::endl;
+      if (working_set.get_weight(graph) > best_solution.get_weight(graph)) {
+        std::cout << "\t===== found better solution c: =====\n" << std::endl;
+        best_solution.~packing_set();
+        new(&best_solution) packing_set(working_set);
+      } else {
+        std::cout << "\t===== didn't find better solution :c =====\n" << std::endl;
+      }
     }
   }
 
@@ -50,19 +68,15 @@ void perturb_solution(const csr_graph& graph, packing_set& solution_set) {
 
   int curr = int_dist(gen);
 
-  std::vector<int> set_nodes;
-  set_nodes.reserve(graph.max_deg);
-
   for (int i = 0; i < amount_iterations; ++i) {
     if (solution_set.get_value(curr)) {
       solution_set.remove_solution_node(curr, graph);
     } else {
-      get_set_partners(set_nodes, solution_set, curr, graph.get_neighbors(curr), graph);
+      std::vector<int> set_nodes = solution_set.get_set_partners(curr, graph.get_neighbors(curr));
 
       solution_set.remove_solution_nodes(set_nodes, graph);
       solution_set.add_solution_node(curr, graph.get_neighbors(curr));
     }
-    set_nodes.clear();
 
     for (int j = 0; j < 3; ++j) {
       const auto& neighbors = graph.get_neighbors(curr);
