@@ -17,9 +17,9 @@ public:
     cutoff(static_cast<double>(iterations) * cutoff_range),
     median_change(0.) {}
 
-  void update_median_change(const int& prev, const int& next);
+  void update_median_change(const int& diff);
 
-  [[nodiscard]] double get_probability(const int& prev, const int& next, const unsigned long long int& iteration);
+  [[nodiscard]] double get_probability(const int& diff, const unsigned long long int& iteration);
 
   [[nodiscard]] double get_temp(const unsigned long long int& iteration) const;
 };

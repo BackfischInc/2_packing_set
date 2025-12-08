@@ -57,7 +57,7 @@ void perturb_solution(const csr_graph& graph, packing_set& solution_set) {
     if (solution_set.get_value(curr)) {
       solution_set.remove_solution_node(curr, graph);
     } else {
-      get_set_partners(set_nodes, solution_set, curr, graph.get_neighbors(curr), graph, false);
+      get_set_partners(set_nodes, solution_set, curr, graph.get_neighbors(curr), graph);
 
       solution_set.remove_solution_nodes(set_nodes, graph);
       solution_set.add_solution_node(curr, graph.get_neighbors(curr));

@@ -7,11 +7,13 @@
 void local_search(const csr_graph& graph, packing_set& solution_set, const bool& weighted,
                   const unsigned long long& iterations, simulated_annealing& temp);
 
-int get_set_partners(std::vector<int>& result, const packing_set& solution_set, const int& curr,
-                     const std::span<const int>& nodes, const csr_graph& graph, const bool& weighted);
+void get_set_partners(std::vector<int>& result, const packing_set& solution_set, const int& curr,
+                     const std::span<const int>& nodes, const csr_graph& graph);
 
 int get_weight(const packing_set& set, const csr_graph& graph);
 
 int get_weight(const std::vector<int>& set, const csr_graph& graph);
+
+void print_update(const int& best_result, const int& diff, const double& current_temp, const double& completion);
 
 #endif //LOCAL_SEARCH_HPP
