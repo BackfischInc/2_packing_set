@@ -10,20 +10,15 @@
 
 class packing_set {
   std::vector<uint8_t> solution_set;
+  std::vector<int> set_neighbors;
   int size = 0;
 
 public:
-  explicit packing_set(const int& n) : solution_set(n, 0) {}
+  explicit packing_set(const int& n) : solution_set(n, 0), set_neighbors(n, -1) {}
 
   packing_set(const packing_set&) = default;
 
-  packing_set& operator=(const packing_set& other) {
-    if (this != &other) {
-      size = other.size;
-      std::memcpy(solution_set.data(), other.solution_set.data(), solution_set.size());
-    }
-    return *this;
-  }
+  void copy(const packing_set& other);
 
   [[nodiscard]] int get_size() const { return size; }
 
@@ -45,11 +40,15 @@ public:
     return solution_set[index];
   }
 
-  void add_solution_node(const int& id, const std::span<const int>& neighbors, std::vector<int>& set_neighbors);
+  void add_solution_node(const int& id, const std::span<const int>& neighbors);
 
-  void remove_solution_node(const int& id, const csr_graph& graph, std::vector<int>& set_neighbors);
+  void remove_solution_node(const int& id, const csr_graph& graph);
 
-  void remove_solution_nodes(const std::vector<int>& ids, const csr_graph& graph, std::vector<int>& set_neighbors);
+  void remove_solution_nodes(const std::vector<int>& ids, const csr_graph& graph);
+
+  [[nodiscard]] int get_neighbor(const int& id) const {
+    return set_neighbors[id];
+  }
 };
 
 #endif

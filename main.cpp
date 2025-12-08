@@ -34,16 +34,15 @@ int main() {
     std::cout << "[DONE]" << std::endl;
 
     packing_set solution_set(graph.amount_nodes());
-    std::vector set_neighbors(graph.amount_nodes(), -1);
     constexpr bool weighted = true;
 
     std::cout << "\texecuting local search..." << std::endl;
-    iterated_local_search(solution_set, set_neighbors, graph, weighted);
+    iterated_local_search(solution_set, graph, weighted);
 
     std::cout << "\t" << (is_valid(graph, solution_set) ? "Valid" : "Invalid") << " Solution" << std::endl;
 
     std::cout << "\texecuting 2-1 swaps...";
-    execute_2_1_swap(graph, solution_set, set_neighbors, weighted);
+    execute_2_1_swap(graph, solution_set, weighted);
     std::cout << "[DONE]" << std::endl;
 
     std::cout << "\tFinal Solution Size: " <<
