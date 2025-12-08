@@ -1,0 +1,28 @@
+#include "packing_set.hpp"
+
+void packing_set::add_solution_node(const int& id, const std::span<const int>& neighbors,
+                                    std::vector<int>& set_neighbors) {
+  insert(id);
+  set_neighbors[id] = id;
+  for (const auto& neighbor: neighbors) {
+    remove(neighbor);
+    set_neighbors[neighbor] = id;
+  }
+}
+
+void packing_set::remove_solution_node(const int& id, const csr_graph& graph,
+                                        std::vector<int>& set_neighbors) {
+  remove(id);
+  set_neighbors[id] = -1;
+  for (const auto& neighbor: graph.get_neighbors(id)) {
+    remove(neighbor);
+    set_neighbors[neighbor] = -1;
+  }
+}
+
+void packing_set::remove_solution_nodes(const std::vector<int>& ids, const csr_graph& graph,
+                                        std::vector<int>& set_neighbors) {
+  for (const int id: ids) {
+   remove_solution_node(id, graph, set_neighbors);
+  }
+}
