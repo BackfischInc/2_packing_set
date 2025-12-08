@@ -3,8 +3,7 @@
 #include <iostream>
 #include <map>
 
-void execute_2_1_swap(const csr_graph& graph, packing_set& solution_set,
-                      std::vector<int>& set_neighbors, const bool& weighted) {
+void execute_2_1_swap(const csr_graph& graph, packing_set& solution_set, const bool& weighted) {
   bool found_swap = true;
   int i = 0;
 
@@ -12,23 +11,22 @@ void execute_2_1_swap(const csr_graph& graph, packing_set& solution_set,
     ++i;
 
     std::map<int, std::vector<int>> buckets;
-    fill_buckets(buckets, graph, set_neighbors);
-    found_swap = execute_swap(buckets, graph, solution_set, set_neighbors, weighted);
+    fill_buckets(buckets, graph, solution_set);
+    found_swap = execute_swap(buckets, graph, solution_set, weighted);
   }
 }
 
-void fill_buckets(std::map<int, std::vector<int>>& buckets, const csr_graph& graph,
-                  const std::vector<int>& set_neighbors) {
+void fill_buckets(std::map<int, std::vector<int>>& buckets, const csr_graph& graph, const packing_set& solution_set) {
   for (int i = 0; i < graph.amount_nodes(); ++i) {
-    if (set_neighbors[i] == i) {
+    if (solution_set.get_neighbor(i) == i) {
       continue;
     }
 
-    int curr_neigh = set_neighbors[i];
+    int curr_neigh = solution_set.get_neighbor(i);
     bool put_in_bucket = true;
 
     for (const int& neighbor: graph.get_neighbors(i)) {
-      const int& neighbor_neigh = set_neighbors[neighbor];
+      const int& neighbor_neigh = solution_set.get_neighbor(neighbor);
 
       if (neighbor_neigh != -1) {
         if (curr_neigh == -1) {
@@ -48,10 +46,9 @@ void fill_buckets(std::map<int, std::vector<int>>& buckets, const csr_graph& gra
   }
 }
 
-bool execute_swap(std::map<int, std::vector<int>>& buckets, const csr_graph& graph, packing_set& solution_set,
-                  std::vector<int>& set_neighbors, const bool& weighted) {
+bool execute_swap(std::map<int, std::vector<int>>& buckets, const csr_graph& graph,
+                  packing_set& solution_set, const bool& weighted) {
   for (const auto& [idx , bucket]: buckets) {
-
     for (int i = 0; i < bucket.size(); ++i) {
       for (int j = i + 1; j < bucket.size(); ++j) {
         const int v = bucket[i];
@@ -68,9 +65,9 @@ bool execute_swap(std::map<int, std::vector<int>>& buckets, const csr_graph& gra
         const auto& neighbors_w = graph.get_neighbors(w);
 
         if (!are_neighbors(graph, v, w) && !have_common_neighbor(neighbors_v, neighbors_w)) {
-          solution_set.remove_solution_node(idx, graph, set_neighbors);
-          solution_set.add_solution_node(v, neighbors_v, set_neighbors);
-          solution_set.add_solution_node(w, neighbors_w, set_neighbors);
+          solution_set.remove_solution_node(idx, graph);
+          solution_set.add_solution_node(v, neighbors_v);
+          solution_set.add_solution_node(w, neighbors_w);
 
           return true;
         }
@@ -81,7 +78,7 @@ bool execute_swap(std::map<int, std::vector<int>>& buckets, const csr_graph& gra
   return false;
 }
 
-bool are_neighbors(const csr_graph& graph, const int& v, const  int& w) {
+bool are_neighbors(const csr_graph& graph, const int& v, const int& w) {
   for (const int& neighbor: graph.get_neighbors(w)) {
     if (neighbor == v) {
       return true;
