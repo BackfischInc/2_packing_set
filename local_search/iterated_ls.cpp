@@ -11,56 +11,37 @@ void iterated_local_search(packing_set& solution_set, const csr_graph& graph, co
     printf("\titeration: %2d\n", i + 1);
     packing_set working_set(best_solution);
 
-    unsigned long long iterations = graph.amount_nodes() * static_cast<unsigned long long>(0x5F);
+    constexpr unsigned long long first_iter_mult = 0x5F;
+    constexpr unsigned long long other_iter_mult = 0xF;
+
+    constexpr double first_iter_start = 1.;
+    constexpr double other_iter_start = 0.2;
+
+    constexpr double first_iter_cutoff = 0.9;
+    constexpr double other_iter_cutoff = 0.5;
+
+    constexpr double perturb_amount = 0.005;
+
+    constexpr unsigned long long iterations = graph.amount_nodes() * (i == 0 ? first_iter_mult : other_iter_mult);
 
     if (i != 0) {
-      iterations = graph.amount_nodes() * static_cast<unsigned long long>(0xF);
-      perturb_solution(graph, working_set);
-
-      if (!weighted) {
-        if (working_set.get_size() > best_solution.get_size()) {
-          std::cout << "\t===== found better solution while perturbing lol :D =====" << std::endl;
-          best_solution.~packing_set();
-          new(&best_solution) packing_set(working_set);
-        }
-      } else {
-        if (working_set.get_weight(graph) > best_solution.get_weight(graph)) {
-          std::cout << "\t===== found better solution while perturbing lol :D =====" << std::endl;
-          best_solution.~packing_set();
-          new(&best_solution) packing_set(working_set);
-        }
-      }
+      perturb_solution(graph, working_set, perturb_amount);
+      update_if_better(graph, best_solution, working_set, weighted);
     }
 
     simulated_annealing temperature(iterations,
-                                    i == 0 ? 1. : 0.2,
-                                    i == 0 ? 0.9 : 0.5);
-    local_search(graph, working_set, weighted, iterations, temperature);
+                                    i == 0 ? first_iter_start : other_iter_start,
+                                    i == 0 ? first_iter_cutoff : other_iter_cutoff);
 
-    if (!weighted) {
-      if (working_set.get_size() > best_solution.get_size()) {
-        std::cout << "\t===== found better solution c: =====\n" << std::endl;
-        best_solution.~packing_set();
-        new(&best_solution) packing_set(working_set);
-      } else {
-        std::cout << "\t===== didn't find better solution :c =====\n" << std::endl;
-      }
-    } else {
-      if (working_set.get_weight(graph) > best_solution.get_weight(graph)) {
-        std::cout << "\t===== found better solution c: =====\n" << std::endl;
-        best_solution.~packing_set();
-        new(&best_solution) packing_set(working_set);
-      } else {
-        std::cout << "\t===== didn't find better solution :c =====\n" << std::endl;
-      }
-    }
+    local_search(graph, working_set, weighted, iterations, temperature);
+    update_if_better(graph, best_solution, working_set, weighted);
   }
 
   solution_set = best_solution;
 }
 
-void perturb_solution(const csr_graph& graph, packing_set& solution_set) {
-  const int amount_iterations = static_cast<int>(graph.amount_nodes() * 0.05);
+void perturb_solution(const csr_graph& graph, packing_set& solution_set, const bool& amount) {
+  const int amount_iterations = graph.amount_nodes() * amount;
 
   std::random_device rd;
   std::mt19937 gen(rd());
@@ -81,6 +62,23 @@ void perturb_solution(const csr_graph& graph, packing_set& solution_set) {
     for (int j = 0; j < 3; ++j) {
       const auto& neighbors = graph.get_neighbors(curr);
       curr = neighbors[int_dist(gen) % neighbors.size()];
+    }
+  }
+}
+
+void update_if_better(const csr_graph& graph, packing_set best_solution,
+                      const packing_set& working_set, const bool& weighted) {
+  if (!weighted) {
+    if (working_set.get_size() > best_solution.get_size()) {
+      std::cout << "\t===== found better solution c: =====\n" << std::endl;
+      best_solution.~packing_set();
+      new(&best_solution) packing_set(working_set);
+    }
+  } else {
+    if (working_set.get_weight(graph) > best_solution.get_weight(graph)) {
+      std::cout << "\t===== found better solution c: =====\n" << std::endl;
+      best_solution.~packing_set();
+      new(&best_solution) packing_set(working_set);
     }
   }
 }

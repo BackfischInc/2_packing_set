@@ -7,7 +7,7 @@ void execute_2_1_swap(const csr_graph& graph, packing_set& solution_set, const b
   bool found_swap = true;
   int i = 0;
 
-  while (found_swap && i < 10) {
+  while (found_swap) {
     ++i;
 
     std::map<int, std::vector<int>> buckets;
