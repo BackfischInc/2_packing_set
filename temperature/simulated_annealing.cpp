@@ -2,9 +2,9 @@
 
 #include <cmath>
 
-void simulated_annealing::update_median_change(const int& prev, const int& next) {
+void simulated_annealing::update_median_change(const int& diff) {
   if (inputs.size() < 10) {
-    inputs.push_back(prev - next);
+    inputs.push_back(diff);
   } else if (median_change == 0.) {
     double sum = 0.;
     for (int i = 0; i < 10; ++i) {
@@ -14,15 +14,15 @@ void simulated_annealing::update_median_change(const int& prev, const int& next)
   }
 }
 
-double simulated_annealing::get_probability(const int& prev, const int& next, const unsigned long long int& iteration) {
-  update_median_change(prev, next);
+double simulated_annealing::get_probability(const int& diff, const unsigned long long int& iteration) {
+  update_median_change(diff);
   const double temperature = get_temp(iteration);
 
   if (median_change != 0.) {
-    return exp(-((prev - next) / median_change) / temperature);
+    return exp(-(diff / median_change) / temperature);
   }
 
-  return exp(-(prev - next) / temperature);
+  return exp(-diff / temperature);
 }
 
 double simulated_annealing::get_temp(const unsigned long long int& iteration) const {
