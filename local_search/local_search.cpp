@@ -6,17 +6,18 @@
 
 void local_search(const csr_graph& graph, packing_set& solution_set, const bool& weighted,
                   const unsigned long long& iterations, simulated_annealing& temp) {
-  const unsigned long long int& n = graph.amount_nodes();
-
   int current_result = weighted ? solution_set.get_weight(graph) : solution_set.get_size();
   int best_result = current_result;
 
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution int_dist(0, static_cast<int>(n - 1));
+  std::uniform_int_distribution int_dist(0, graph.amount_nodes() - 1);
   std::uniform_real_distribution double_dist(0.0, 1.0);
 
-  for (unsigned long long int i = 0; i < iterations; i++) {
+  constexpr double output_freq = 0.1;
+  const auto output_interval = static_cast<unsigned long long>(static_cast<double>(iterations) * output_freq);
+
+  for (unsigned long long int i = 0; i <= iterations; i++) {
     const int curr = int_dist(gen);
 
     if (solution_set.get_value(curr)) {
@@ -31,7 +32,7 @@ void local_search(const csr_graph& graph, packing_set& solution_set, const bool&
       best_result = current_result;
     }
 
-    if (i % n == 0 || i == iterations - 1) {
+    if (i % output_interval == 0) {
       const double completion = static_cast<double>(i + 1) / static_cast<double>(iterations);
       print_update(best_result, best_result - current_result, temp.get_temp(i), completion);
     }
@@ -88,6 +89,6 @@ bool direct_swap(const size_t& size, const int& set_weight, const int& node_weig
 }
 
 void print_update(const int& best_result, const int& diff, const double& current_temp, const double& completion) {
-  printf("\t\tbest found size: %8d, current diff: %8d, temp: %.4f, completion: %.4f\n",
+  printf("\t\tbest found size: %8d, current diff: %8d, temp: %.4f, completion: %.1f\n",
          best_result, diff, current_temp, completion);
 }

@@ -14,6 +14,8 @@ void execute_2_1_swap(const csr_graph& graph, packing_set& solution_set, const b
     fill_buckets(buckets, graph, solution_set);
     found_swap = execute_swap(buckets, graph, solution_set, weighted);
   }
+
+  printf("[DONE]\n\tfound %d 2-1 swaps\n", i);
 }
 
 void fill_buckets(std::map<int, std::vector<int>>& buckets, const csr_graph& graph, const packing_set& solution_set) {

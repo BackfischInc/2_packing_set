@@ -45,7 +45,6 @@ int main() {
 
     std::cout << "\texecuting 2-1 swaps...";
     execute_2_1_swap(graph, solution_set, weighted);
-    std::cout << "[DONE]" << std::endl;
 
     std::cout << "\tFinal Solution Size: " <<
         (weighted
