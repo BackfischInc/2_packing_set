@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <vector>
 #include <cstring>
+#include <set>
 #include <span>
 
 #include "../graph/csr_graph.hpp"
@@ -42,16 +43,19 @@ public:
     return set_neighbors[id];
   }
 
-  void add_solution_node(const int& id, const std::span<const int>& neighbors);
+  void add_solution_node(const int& id, const csr_graph& graph);
 
   void remove_solution_node(const int& id, const csr_graph& graph);
 
-  void remove_solution_nodes(const std::vector<int>& ids, const csr_graph& graph);
+  void remove_solution_nodes(const std::set<int>& ids, const csr_graph& graph);
 
-  [[nodiscard]] std::vector<int> get_set_partners(const int& curr, const std::span<const int>& nodes) const;
+  [[nodiscard]] std::set<int> get_set_partners(const int& curr, const std::span<const int>& nodes) const;
 
   [[nodiscard]] int get_weight(const csr_graph& graph) const;
-  static int get_weight(const std::vector<int>& set, const csr_graph& graph);
+
+  static int get_weight(const std::set<int>& set, const csr_graph& graph);
+
+  [[nodiscard]] bool verify_set_neighbors(const csr_graph& graph) const;
 };
 
 #endif

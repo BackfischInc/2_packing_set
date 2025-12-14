@@ -14,7 +14,7 @@ bool is_valid(const csr_graph& graph, const packing_set& solution) {
     if (solution.get_value(i)) {
       for (const auto& neighbor: neighbors) {
         if (solution.get_value(neighbor)) {
-          std::cout << i << " " << neighbor << std::endl;
+          std::cout << "set - set" << std::endl;
           return false;
         }
       }
@@ -26,7 +26,7 @@ bool is_valid(const csr_graph& graph, const packing_set& solution) {
       for (const auto& neighbor: neighbors) {
         if (solution.get_value(neighbor)) {
           if (found_set_neighbor) {
-            std::cout << i << std::endl;
+            std::cout << "set - not - set" << std::endl;
             return false;
           }
           found_set_neighbor = true;
