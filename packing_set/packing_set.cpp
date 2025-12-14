@@ -1,9 +1,11 @@
 #include "packing_set.hpp"
 
-void packing_set::add_solution_node(const int& id, const std::span<const int>& neighbors) {
+#include <iostream>
+
+void packing_set::add_solution_node(const int& id, const csr_graph& graph) {
   insert(id);
   set_neighbors[id] = id;
-  for (const auto& neighbor: neighbors) {
+  for (const auto& neighbor: graph.get_neighbors(id)) {
     remove(neighbor);
     set_neighbors[neighbor] = id;
   }
@@ -18,25 +20,21 @@ void packing_set::remove_solution_node(const int& id, const csr_graph& graph) {
   }
 }
 
-void packing_set::remove_solution_nodes(const std::vector<int>& ids, const csr_graph& graph) {
+void packing_set::remove_solution_nodes(const std::set<int>& ids, const csr_graph& graph) {
   for (const int id: ids) {
     remove_solution_node(id, graph);
   }
 }
 
-std::vector<int> packing_set::get_set_partners(const int& curr, const std::span<const int>& nodes) const {
-  std::vector<int> result;
+std::set<int> packing_set::get_set_partners(const int& curr, const std::span<const int>& nodes) const {
+  std::set<int> result;
 
-  if (get_neighbor(curr) != -1) {
-    result.push_back(get_neighbor(curr));
-  }
-
+  result.insert(get_neighbor(curr));
   for (const int& node: nodes) {
-    if (const int partner = get_neighbor(node);
-      partner != -1 && std::ranges::find(result, partner) == result.end()) {
-      result.push_back(get_neighbor(node));
-    }
+    result.insert(get_neighbor(node));
   }
+
+  result.extract(-1);
 
   return result;
 }
@@ -55,7 +53,7 @@ int packing_set::get_weight(const csr_graph& graph) const {
   return result;
 }
 
-int packing_set::get_weight(const std::vector<int>& set, const csr_graph& graph) {
+int packing_set::get_weight(const std::set<int>& set, const csr_graph& graph) {
   int result = 0;
 
   for (const int& node: set) {
@@ -63,4 +61,18 @@ int packing_set::get_weight(const std::vector<int>& set, const csr_graph& graph)
   }
 
   return result;
+}
+
+bool packing_set::verify_set_neighbors(const csr_graph& graph) const {
+  for (int i = 0; i < graph.amount_nodes(); ++i) {
+    if (get_value(i)) {
+      for (const int& neighbor: graph.get_neighbors(i)) {
+        if (get_neighbor(neighbor) != i) {
+          return false;
+        }
+      }
+    }
+  }
+
+  return true;
 }

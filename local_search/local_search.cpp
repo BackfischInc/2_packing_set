@@ -25,8 +25,8 @@ void local_search(const csr_graph& graph, packing_set& solution_set, const bool&
     }
 
     const double random_value = double_dist(gen);
-    const bool did_swap = search_node(curr,graph, solution_set, temp,
-                                      current_result, i,  random_value, weighted);
+    const bool did_swap = search_node(curr, graph, solution_set, temp,
+                                      current_result, i, random_value, weighted);
 
     if (did_swap && current_result > best_result) {
       best_result = current_result;
@@ -37,6 +37,7 @@ void local_search(const csr_graph& graph, packing_set& solution_set, const bool&
       print_update(best_result, best_result - current_result, temp.get_temp(i), completion);
     }
   }
+  std::cout << std::endl;
 }
 
 bool search_node(const int& curr, const csr_graph& graph, packing_set& solution_set, simulated_annealing& temp,
@@ -44,7 +45,7 @@ bool search_node(const int& curr, const csr_graph& graph, packing_set& solution_
                  const double& random_value, const bool& weighted) {
   const auto& nodes_to_check = graph.get_neighbors(curr);
 
-  const std::vector<int> set_nodes = solution_set.get_set_partners(curr, nodes_to_check);
+  const std::set<int> set_nodes = solution_set.get_set_partners(curr, nodes_to_check);
   const int& weight = packing_set::get_weight(set_nodes, graph);
 
   if (direct_swap(set_nodes.size(), weight, graph.get_weight(curr), weighted) ||
@@ -52,13 +53,13 @@ bool search_node(const int& curr, const csr_graph& graph, packing_set& solution_
         get_diff(set_nodes.size(), weight, graph.get_weight(curr), weighted),
         iteration)) {
     solution_set.remove_solution_nodes(set_nodes, graph);
-    solution_set.add_solution_node(curr, graph.get_neighbors(curr));
+    solution_set.add_solution_node(curr, graph);
 
     update_current_result(current_result, solution_set.get_size(), weight,
                           graph.get_weight(curr), weighted);
 
     return true;
-        }
+  }
 
   return false;
 }
@@ -89,6 +90,6 @@ bool direct_swap(const size_t& size, const int& set_weight, const int& node_weig
 }
 
 void print_update(const int& best_result, const int& diff, const double& current_temp, const double& completion) {
-  printf("\t\tbest found size: %8d, current diff: %8d, temp: %.4f, completion: %.1f\n",
+  printf("\tbest: %8d, diff: %8d, temp: %.4f, done: %.1f\n",
          best_result, diff, current_temp, completion);
 }
