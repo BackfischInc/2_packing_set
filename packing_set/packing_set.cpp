@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-void packing_set::add_solution_node(const int& id, const csr_graph& graph) {
+void packing_set::add_solution_node(const uint64_t& id, const csr_graph& graph) {
   insert(id);
   set_neighbors[id] = id;
   for (const auto& neighbor: graph.get_neighbors(id)) {
@@ -11,7 +11,7 @@ void packing_set::add_solution_node(const int& id, const csr_graph& graph) {
   }
 }
 
-void packing_set::remove_solution_node(const int& id, const csr_graph& graph) {
+void packing_set::remove_solution_node(const uint64_t& id, const csr_graph& graph) {
   remove(id);
   set_neighbors[id] = -1;
   for (const auto& neighbor: graph.get_neighbors(id)) {
@@ -20,17 +20,17 @@ void packing_set::remove_solution_node(const int& id, const csr_graph& graph) {
   }
 }
 
-void packing_set::remove_solution_nodes(const std::set<int>& ids, const csr_graph& graph) {
-  for (const int id: ids) {
+void packing_set::remove_solution_nodes(const std::set<uint64_t>& ids, const csr_graph& graph) {
+  for (const uint64_t id: ids) {
     remove_solution_node(id, graph);
   }
 }
 
-std::set<int> packing_set::get_set_partners(const int& curr, const std::span<const int>& nodes) const {
-  std::set<int> result;
+std::set<uint64_t> packing_set::get_set_partners(const uint64_t& curr, const std::span<const uint64_t>& nodes) const {
+  std::set<uint64_t> result;
 
   result.insert(get_neighbor(curr));
-  for (const int& node: nodes) {
+  for (const uint64_t& node: nodes) {
     result.insert(get_neighbor(node));
   }
 
@@ -40,11 +40,11 @@ std::set<int> packing_set::get_set_partners(const int& curr, const std::span<con
 }
 
 
-int packing_set::get_weight(const csr_graph& graph) const {
-  const int n = graph.amount_nodes();
-  int result = 0;
+uint64_t packing_set::get_weight(const csr_graph& graph) const {
+  const uint64_t n = graph.amount_nodes();
+  uint64_t result = 0;
 
-  for (int i = 0; i < n; ++i) {
+  for (uint64_t i = 0; i < n; ++i) {
     if (get_value(i)) {
       result += graph.get_weight(i);
     }
@@ -53,10 +53,10 @@ int packing_set::get_weight(const csr_graph& graph) const {
   return result;
 }
 
-int packing_set::get_weight(const std::set<int>& set, const csr_graph& graph) {
-  int result = 0;
+uint64_t packing_set::get_weight(const std::set<uint64_t>& set, const csr_graph& graph) {
+  uint64_t result = 0;
 
-  for (const int& node: set) {
+  for (const uint64_t& node: set) {
     result += graph.get_weight(node);
   }
 
@@ -66,7 +66,7 @@ int packing_set::get_weight(const std::set<int>& set, const csr_graph& graph) {
 bool packing_set::verify_set_neighbors(const csr_graph& graph) const {
   for (int i = 0; i < graph.amount_nodes(); ++i) {
     if (get_value(i)) {
-      for (const int& neighbor: graph.get_neighbors(i)) {
+      for (const uint64_t& neighbor: graph.get_neighbors(i)) {
         if (get_neighbor(neighbor) != i) {
           return false;
         }

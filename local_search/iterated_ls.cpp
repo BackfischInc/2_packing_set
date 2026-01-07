@@ -1,64 +1,56 @@
 #include "iterated_ls.hpp"
-#include "local_search.hpp"
 #include "local_swaps.hpp"
 
 #include <iostream>
 #include <random>
+#include <thread>
+#include <mutex>
 
+std::mutex mtx;
 
-void iterated_local_search(packing_set& solution_set, const csr_graph& graph, const bool& weighted) {
-  constexpr int iteration_amount = 10;
-
-  constexpr unsigned long long iter_mult = 0xFF;
-  constexpr double temp_start = .2;
-  constexpr double temp_cutoff = .25;
-  constexpr double perturb_amount = 0.01;
-
-  std::cout << "create initial solution:\n";
-  maximize_solution(graph, solution_set, weighted);
-
+void execute_iteration(packing_set& solution_set, const csr_graph& graph, const bool weighted,
+                       const int iteration_amount) {
   for (int i = 0; i < iteration_amount; ++i) {
-    printf("\n====\niteration: %2d:\n\n", i + 1);
     packing_set working_set(solution_set);
 
-    const unsigned long long iterations = graph.amount_nodes() * iter_mult;
-
-    printf("perturbing solution of size: %8d...",
-           weighted ? working_set.get_weight(graph) : working_set.get_size());
-
-    perturb_solution(graph, working_set, perturb_amount);
-    printf("[DONE]\n");
+    perturb_solution(graph, working_set);
     update_if_better(graph, solution_set, working_set, weighted);
 
-    simulated_annealing temperature(iterations, temp_start, temp_cutoff);
-
-    std::cout << "\nlocal search step:\n";
-    local_search(graph, working_set, weighted, iterations, temperature);
-
-    std::cout << "maximizing found solution:\n";
     maximize_solution(graph, working_set, weighted);
-    std::cout << std::endl;
-
     update_if_better(graph, solution_set, working_set, weighted);
   }
-
-  std::cout << "[DONE]" << std::endl;
 }
 
-void perturb_solution(const csr_graph& graph, packing_set& solution_set, const double& amount) {
-  const int amount_iterations = static_cast<int>(static_cast<double>(graph.amount_nodes()) * amount);
+void iterated_local_search(packing_set& solution_set, const csr_graph& graph, const bool& weighted) {
+  constexpr int iteration_amount = 200;
 
+  maximize_solution(graph, solution_set, weighted);
+
+  std::thread t1(execute_iteration, std::ref(solution_set), std::cref(graph), weighted, iteration_amount);
+  std::thread t2(execute_iteration, std::ref(solution_set), std::cref(graph), weighted, iteration_amount);
+  std::thread t3(execute_iteration, std::ref(solution_set), std::cref(graph), weighted, iteration_amount);
+  std::thread t4(execute_iteration, std::ref(solution_set), std::cref(graph), weighted, iteration_amount);
+
+  t1.join();
+  t2.join();
+  t3.join();
+  t4.join();
+}
+
+void perturb_solution(const csr_graph& graph, packing_set& solution_set) {
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution int_dist(0, graph.amount_nodes() - 1);
+  std::uniform_int_distribution<uint64_t> int_dist(0, graph.amount_nodes() - 1);
+  std::uniform_real_distribution real_dist(0.01, 0.2);
 
-  int curr = int_dist(gen);
+  uint64_t curr = int_dist(gen);
 
+  const int amount_iterations = static_cast<int>(static_cast<double>(graph.amount_nodes()) * real_dist(gen));
   for (int i = 0; i < amount_iterations; ++i) {
     if (solution_set.get_value(curr)) {
       solution_set.remove_solution_node(curr, graph);
     } else {
-      std::set<int> set_nodes = solution_set.get_set_partners(curr, graph.get_neighbors(curr));
+      std::set<uint64_t> set_nodes = solution_set.get_set_partners(curr, graph.get_neighbors(curr));
 
       solution_set.remove_solution_nodes(set_nodes, graph);
       solution_set.add_solution_node(curr, graph);
@@ -73,21 +65,19 @@ void perturb_solution(const csr_graph& graph, packing_set& solution_set, const d
 
 void update_if_better(const csr_graph& graph, packing_set& best_solution,
                       const packing_set& working_set, const bool& weighted) {
+  mtx.lock();
   if (!weighted) {
     if (working_set.get_size() > best_solution.get_size()) {
-      std::cout << "=> found better solution c: <=" << std::endl;
       best_solution.~packing_set();
       new(&best_solution) packing_set(working_set);
-    } else {
-      std::cout << "=> didn't find better solution :c <=" << std::endl;
+     //  std::cout << "[" << std::this_thread::get_id() << "] new best: " << working_set.get_size() << std::endl;
     }
   } else {
     if (working_set.get_weight(graph) > best_solution.get_weight(graph)) {
-      std::cout << "=> found better solution c: <=" << std::endl;
       best_solution.~packing_set();
       new(&best_solution) packing_set(working_set);
-    } else {
-      std::cout << "=> didn't find better solution :c <=" << std::endl;
+     // std::cout << "[" << std::this_thread::get_id() << "] new best: " << working_set.get_weight(graph) << std::endl;
     }
   }
+  mtx.unlock();
 }

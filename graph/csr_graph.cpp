@@ -1,4 +1,6 @@
 #include "csr_graph.hpp"
+
+#include <cstdint>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -19,7 +21,7 @@ csr_graph::csr_graph(const std::string& file_name) {
     }
   }
 
-  int i, j, w;
+  uint64_t i, j, w;
   std::istringstream n_m_dec(line);
   n_m_dec >> i >> j >> w;
   this->n = i;
@@ -28,19 +30,17 @@ csr_graph::csr_graph(const std::string& file_name) {
     weighted = true;
   }
 
-  starts = std::vector<int>(n - 1);
-  neighbors = std::vector<int>(2 * m);
-  weights = std::vector<int>(n);
+  starts = std::vector<uint64_t>(n - 1);
+  neighbors = std::vector<uint64_t>(2 * m);
+  weights = std::vector<uint64_t>(n);
 
-  int curr_node = 0;
-
-  int max_degree = 0;
+  uint64_t curr_node = 0;
 
   while (std::getline(file, line)) {
-    std::vector<int> numbers;
+    std::vector<uint64_t> numbers;
 
     std::istringstream iss(line);
-    int value;
+    uint64_t value;
     bool start = true;
     while (iss >> value) {
       if (start) {
@@ -51,27 +51,22 @@ csr_graph::csr_graph(const std::string& file_name) {
       }
     }
 
-    int deg = static_cast<int>(numbers.size());
-    if (deg > max_degree) {
-      max_degree = deg;
-    }
+    uint64_t deg = numbers.size();
 
     if (curr_node != n - 1) {
       starts[curr_node] = curr_node == 0 ? deg : deg + starts[curr_node - 1];
     }
 
-    for (int it1 = 0; it1 < deg; it1++) {
-      const int start_idx = curr_node == 0 ? 0 : starts[curr_node - 1];
+    for (uint64_t it1 = 0; it1 < deg; it1++) {
+      const uint64_t start_idx = curr_node == 0 ? 0 : starts[curr_node - 1];
       neighbors[start_idx + it1] = numbers[it1];
     }
 
     ++curr_node;
   }
-
-  max_deg = max_degree;
 }
 
-std::span<const int> csr_graph::get_neighbors(const int& id) const {
+std::span<const uint64_t> csr_graph::get_neighbors(const uint64_t& id) const {
   const size_t deg =
       id == 0
         ? starts[id]
@@ -79,7 +74,7 @@ std::span<const int> csr_graph::get_neighbors(const int& id) const {
             ? 2 * m - starts[id - 1]
             : starts[id] - starts[id - 1];
 
-  const int start_idx = id == 0 ? 0 : starts[id - 1];
+  const uint64_t start_idx = id == 0 ? 0 : starts[id - 1];
 
   return std::span{neighbors.begin() + start_idx, deg};
 }
