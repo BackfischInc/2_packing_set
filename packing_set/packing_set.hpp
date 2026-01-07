@@ -11,49 +11,49 @@
 
 class packing_set {
   std::vector<uint8_t> solution_set;
-  std::vector<int> set_neighbors;
-  int size = 0;
+  std::vector<uint64_t> set_neighbors;
+  uint64_t size = 0;
 
 public:
-  explicit packing_set(const int& n) : solution_set(n, 0), set_neighbors(n, -1) {}
+  explicit packing_set(const uint64_t& n) : solution_set(n, 0), set_neighbors(n, -1) {}
 
   packing_set(const packing_set&) = default;
 
-  [[nodiscard]] int get_size() const { return size; }
+  [[nodiscard]] uint64_t get_size() const { return size; }
 
-  void insert(const int& index) {
+  void insert(const uint64_t& index) {
     if (!solution_set[index]) {
       solution_set[index] = 1;
       ++size;
     }
   }
 
-  void remove(const int& index) {
+  void remove(const uint64_t& index) {
     if (solution_set[index]) {
       solution_set[index] = 0;
       --size;
     }
   }
 
-  [[nodiscard]] bool get_value(const int& index) const {
+  [[nodiscard]] bool get_value(const uint64_t& index) const {
     return solution_set[index];
   }
 
-  [[nodiscard]] int get_neighbor(const int& id) const {
+  [[nodiscard]] uint64_t get_neighbor(const uint64_t& id) const {
     return set_neighbors[id];
   }
 
-  void add_solution_node(const int& id, const csr_graph& graph);
+  void add_solution_node(const uint64_t& id, const csr_graph& graph);
 
-  void remove_solution_node(const int& id, const csr_graph& graph);
+  void remove_solution_node(const uint64_t& id, const csr_graph& graph);
 
-  void remove_solution_nodes(const std::set<int>& ids, const csr_graph& graph);
+  void remove_solution_nodes(const std::set<uint64_t>& ids, const csr_graph& graph);
 
-  [[nodiscard]] std::set<int> get_set_partners(const int& curr, const std::span<const int>& nodes) const;
+  [[nodiscard]] std::set<uint64_t> get_set_partners(const uint64_t& curr, const std::span<const uint64_t>& nodes) const;
 
-  [[nodiscard]] int get_weight(const csr_graph& graph) const;
+  [[nodiscard]] uint64_t get_weight(const csr_graph& graph) const;
 
-  static int get_weight(const std::set<int>& set, const csr_graph& graph);
+  static uint64_t get_weight(const std::set<uint64_t>& set, const csr_graph& graph);
 
   [[nodiscard]] bool verify_set_neighbors(const csr_graph& graph) const;
 };

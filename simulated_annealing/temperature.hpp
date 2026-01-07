@@ -2,7 +2,7 @@
 #define SIMULATED_ANNEALING_HPP
 #include <vector>
 
-class simulated_annealing {
+class temperature {
   const double start_temp;
   const double cutoff;
 
@@ -10,7 +10,7 @@ class simulated_annealing {
   std::vector<int> inputs;
 
 public:
-  explicit simulated_annealing(const unsigned long long int& iterations,
+  explicit temperature(const unsigned long long int& iterations,
                                const double& start_temp = 1.,
                                const double& cutoff_range = 0.9):
     start_temp(start_temp),
