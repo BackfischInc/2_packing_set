@@ -12,6 +12,7 @@ int main() {
   const std::string path = "../../../../w2pack_all/";
 
   const std::vector<std::string> file_names = {
+    /*
     "cactus50-degree.graph",    // 17
     "cactus100-degree.graph",   // 31
     "cactus150-degree.graph",   // 49
@@ -32,6 +33,8 @@ int main() {
     "cactus900-degree.graph",   // 300
     "cactus950-degree.graph",   // 315
     "cactus1000-degree.graph",  // 332
+    */
+    "snap_com-amazon.graph",
   };
 
   std::cout << "===========" << std::endl;
@@ -42,11 +45,9 @@ int main() {
     // std::cout << "[DONE]" << std::endl;
 
     packing_set solution_set(graph.amount_nodes());
-    constexpr bool weighted = false;
+    constexpr bool weighted = true;
 
     iterated_local_search(solution_set, graph, weighted);
-    // std::cout << "====" << std::endl;
-
     std::cout << "final solution size: " <<
         (weighted
            ? solution_set.get_weight(graph)
