@@ -3,45 +3,34 @@
 
 #include <iostream>
 #include <random>
-#include <thread>
-#include <mutex>
-
-std::mutex mtx;
-
-void execute_iteration(packing_set& solution_set, const csr_graph& graph, const bool weighted,
-                       const int iteration_amount) {
-  for (int i = 0; i < iteration_amount; ++i) {
-    packing_set working_set(solution_set);
-
-    perturb_solution(graph, working_set);
-    update_if_better(graph, solution_set, working_set, weighted);
-
-    maximize_solution(graph, working_set, weighted);
-    update_if_better(graph, solution_set, working_set, weighted);
-  }
-}
 
 void iterated_local_search(packing_set& solution_set, const csr_graph& graph, const bool& weighted) {
   constexpr int iteration_amount = 200;
 
-  maximize_solution(graph, solution_set, weighted);
+  uint64_t best_result = weighted ? solution_set.get_weight(graph) : solution_set.get_size();
 
-  std::thread t1(execute_iteration, std::ref(solution_set), std::cref(graph), weighted, iteration_amount);
-  std::thread t2(execute_iteration, std::ref(solution_set), std::cref(graph), weighted, iteration_amount);
-  std::thread t3(execute_iteration, std::ref(solution_set), std::cref(graph), weighted, iteration_amount);
-  std::thread t4(execute_iteration, std::ref(solution_set), std::cref(graph), weighted, iteration_amount);
+  for (int i = 1; i <= iteration_amount; ++i) {
+    if (i % 10 == 0) { std::cout << i << std::endl; }
 
-  t1.join();
-  t2.join();
-  t3.join();
-  t4.join();
+    perturb_solution(graph, solution_set);
+    maximize_solution(graph, solution_set, weighted);
+
+    if (is_better(graph, solution_set, best_result, weighted)) {
+      best_result = weighted ? solution_set.get_weight(graph) : solution_set.get_size();
+      solution_set.clear_changelog();
+
+      std::cout << "[" << i << "] found new best: " << best_result << std::endl;
+    } else {
+      solution_set.unwind(graph);
+    }
+  }
 }
 
 void perturb_solution(const csr_graph& graph, packing_set& solution_set) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<uint64_t> int_dist(0, graph.amount_nodes() - 1);
-  std::uniform_real_distribution real_dist(0.01, 0.2);
+  std::uniform_real_distribution real_dist(0.005, 0.1);
 
   uint64_t curr = int_dist(gen);
 
@@ -63,21 +52,9 @@ void perturb_solution(const csr_graph& graph, packing_set& solution_set) {
   }
 }
 
-void update_if_better(const csr_graph& graph, packing_set& best_solution,
-                      const packing_set& working_set, const bool& weighted) {
-  mtx.lock();
-  if (!weighted) {
-    if (working_set.get_size() > best_solution.get_size()) {
-      best_solution.~packing_set();
-      new(&best_solution) packing_set(working_set);
-     //  std::cout << "[" << std::this_thread::get_id() << "] new best: " << working_set.get_size() << std::endl;
-    }
-  } else {
-    if (working_set.get_weight(graph) > best_solution.get_weight(graph)) {
-      best_solution.~packing_set();
-      new(&best_solution) packing_set(working_set);
-     // std::cout << "[" << std::this_thread::get_id() << "] new best: " << working_set.get_weight(graph) << std::endl;
-    }
+bool is_better(const csr_graph& graph, const packing_set& solution_set, const uint64_t& prev, const bool& weighted) {
+  if (weighted) {
+    return solution_set.get_weight(graph) > prev;
   }
-  mtx.unlock();
+  return solution_set.get_size() > prev;
 }

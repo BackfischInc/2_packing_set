@@ -6,18 +6,19 @@
 #include <cstring>
 #include <set>
 #include <span>
+#include <stack>
 
 #include "../graph/csr_graph.hpp"
 
 class packing_set {
   std::vector<uint8_t> solution_set;
   std::vector<uint64_t> set_neighbors;
+  std::stack<uint64_t> changelog;
+
   uint64_t size = 0;
 
 public:
   explicit packing_set(const uint64_t& n) : solution_set(n, 0), set_neighbors(n, -1) {}
-
-  packing_set(const packing_set&) = default;
 
   [[nodiscard]] uint64_t get_size() const { return size; }
 
@@ -56,6 +57,10 @@ public:
   static uint64_t get_weight(const std::set<uint64_t>& set, const csr_graph& graph);
 
   [[nodiscard]] bool verify_set_neighbors(const csr_graph& graph) const;
+
+  void unwind(const csr_graph& graph);
+
+  void clear_changelog();
 };
 
 #endif
