@@ -34,27 +34,27 @@ int main() {
     "cactus950-degree.graph",   // 315
     "cactus1000-degree.graph",  // 332
     */
-    "snap_com-amazon.graph",
+    "snap_com-amazon.graph", // 6 784 135
   };
 
   std::cout << "===========" << std::endl;
   for (const std::string& file_name: file_names) {
     std::cout << file_name << std::endl;
-    // std::cout << "parsing the graph...";
+    std::cout << "parsing the graph...";
     const csr_graph graph(path + file_name);
-    // std::cout << "[DONE]" << std::endl;
+     std::cout << "[DONE]" << std::endl;
+    std::cout << "===========" << std::endl;
 
     packing_set solution_set(graph.amount_nodes());
     constexpr bool weighted = true;
 
     iterated_local_search(solution_set, graph, weighted);
-    std::cout << "final solution size: " <<
-        (weighted
-           ? solution_set.get_weight(graph)
-           : solution_set.get_size())
-        << std::endl;
-    std::cout << (is_valid(graph, solution_set) ? "valid" : "invalid") << " solution" << std::endl;
-    std::cout << "===========" << std::endl;
+
+    std::cout << "===========" << std::endl
+        << "final solution size: "
+        << (weighted ? solution_set.get_weight(graph) : solution_set.get_size()) << std::endl
+        << (is_valid(graph, solution_set) ? "valid" : "invalid") << " solution" << std::endl
+        << "===========" << std::endl;
   }
 
   return 0;

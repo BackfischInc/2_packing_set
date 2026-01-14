@@ -4,11 +4,15 @@
 #include "../graph/csr_graph.hpp"
 #include "../packing_set/packing_set.hpp"
 
-void maximize_solution(const csr_graph& graph, packing_set& solution_set, bool weighted);
+void maximize_solution(const csr_graph& graph, packing_set& solution_set,
+                       std::set<uint64_t>& curr_nodes, std::set<uint64_t>& next_nodes,
+                        const uint64_t max_node_amount, const bool& weighted);
 
-bool try_auto_include(const uint64_t& curr, const csr_graph& graph, packing_set& solution_set, const bool& weighted);
+bool try_auto_include(const uint64_t& curr, const csr_graph& graph, packing_set& solution_set,
+                      std::set<uint64_t>& next_nodes, const bool& weighted);
 
-bool find_2_1_swap(const uint64_t& curr, const csr_graph& graph, packing_set& solution_set, const bool& weighted);
+bool find_2_1_swap(const uint64_t& curr, const csr_graph& graph, packing_set& solution_set,
+                   std::set<uint64_t>& next_nodes, const bool& weighted);
 
 bool has_potential(const uint64_t& node, const uint64_t& curr, const csr_graph& graph, const packing_set& set);
 
