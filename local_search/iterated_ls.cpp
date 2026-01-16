@@ -1,4 +1,7 @@
 #include "iterated_ls.hpp"
+
+#include <format>
+
 #include "local_swaps.hpp"
 
 #include <iostream>
@@ -16,16 +19,8 @@ void iterated_local_search(packing_set& solution_set, const csr_graph& graph, co
   std::set<uint64_t> curr_nodes;
   std::set<uint64_t> next_nodes;
 
-  uint64_t last_improvement = 0;
-
   for (int i = 1; ; ++i) {
     const uint64_t max_node_amount = int_dist(gen) % 60 + 15;
-
-    /*
-    if (i % iter_cutoff == 0 && i - last_improvement > iter_cutoff) {
-      break;
-    }
-    */
 
     perturb_solution(graph, solution_set, curr_nodes, max_node_amount, int_dist, real_dist, gen);
     maximize_solution(graph, solution_set, curr_nodes, next_nodes, max_node_amount, weighted);
@@ -33,8 +28,8 @@ void iterated_local_search(packing_set& solution_set, const csr_graph& graph, co
     if (is_better(graph, solution_set, best_result, weighted)) {
       best_result = weighted ? solution_set.get_weight(graph) : solution_set.get_size();
       solution_set.clear_changelog();
-      last_improvement = i;
-      printf("[%6d] %7llu\n", i, best_result);
+
+      std::cout << std::format("\rIteration: {:6},  Solution Size: {:7}", i, best_result) << std::flush;
     } else {
       solution_set.unwind(graph);
     }

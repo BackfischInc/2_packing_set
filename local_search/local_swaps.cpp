@@ -16,11 +16,9 @@ void maximize_solution(const csr_graph& graph, packing_set& solution_set,
 
     for (const uint64_t& curr: curr_nodes) {
       if (solution_set.get_value(curr)) {
-        /*
         if (find_2_1_swap(curr, graph, solution_set, next_nodes, weighted)) {
           swap_occurred = true;
         }
-        */
       } else {
         if (try_auto_include(curr, graph, solution_set, next_nodes, weighted)) {
           swap_occurred = true;
