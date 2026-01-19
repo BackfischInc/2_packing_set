@@ -14,4 +14,6 @@ add_executable(2_Packing_Set
         local_search/iterated_ls.hpp
         local_search/local_swaps.cpp
         local_search/local_swaps.hpp
+        verifier/verifier.hpp
+        verifier/verifier.cpp
 )

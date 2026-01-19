@@ -6,13 +6,16 @@
 
 void maximize_solution(const csr_graph& graph, packing_set& solution_set,
                        std::set<uint64_t>& curr_nodes, std::set<uint64_t>& next_nodes,
-                        const uint64_t max_node_amount, const bool& weighted);
+                        const uint64_t& max_node_amount, const bool& weighted);
 
 bool try_auto_include(const uint64_t& curr, const csr_graph& graph, packing_set& solution_set,
                       std::set<uint64_t>& next_nodes, const bool& weighted);
 
 bool find_2_1_swap(const uint64_t& curr, const csr_graph& graph, packing_set& solution_set,
                    std::set<uint64_t>& next_nodes, const bool& weighted);
+
+bool try_swap(const uint64_t& node, const uint64_t& curr, const std::set<uint64_t>& pot_neighbors, const csr_graph& graph,
+  packing_set& solution_set, std::set<uint64_t>& next_nodes, const bool& weighted);
 
 bool has_potential(const uint64_t& node, const uint64_t& curr, const csr_graph& graph, const packing_set& set);
 

@@ -16,23 +16,28 @@ class packing_set {
   std::stack<uint64_t> changelog;
 
   uint64_t size = 0;
+  uint64_t weight = 0;
 
 public:
   explicit packing_set(const uint64_t& n) : solution_set(n, 0), set_neighbors(n, -1) {}
 
   [[nodiscard]] uint64_t get_size() const { return size; }
 
-  void insert(const uint64_t& index) {
+  [[nodiscard]] uint64_t get_weight() const { return weight; }
+
+  void insert(const uint64_t& index, const csr_graph& graph) {
     if (!solution_set[index]) {
       solution_set[index] = 1;
       ++size;
+      weight += graph.get_weight(index);
     }
   }
 
-  void remove(const uint64_t& index) {
+  void remove(const uint64_t& index, const csr_graph& graph) {
     if (solution_set[index]) {
       solution_set[index] = 0;
       --size;
+      weight -= graph.get_weight(index);
     }
   }
 
@@ -51,8 +56,6 @@ public:
   void remove_solution_nodes(const std::set<uint64_t>& ids, const csr_graph& graph);
 
   [[nodiscard]] std::set<uint64_t> get_set_partners(const uint64_t& curr, const std::span<const uint64_t>& nodes) const;
-
-  [[nodiscard]] uint64_t get_weight(const csr_graph& graph) const;
 
   static uint64_t get_weight(const std::set<uint64_t>& set, const csr_graph& graph);
 

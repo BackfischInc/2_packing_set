@@ -1,5 +1,5 @@
 #include "iterated_ls.hpp"
-adjus#include "local_swaps.hpp"
+#include "local_swaps.hpp"
 
 #include <chrono>
 #include <format>
@@ -15,7 +15,7 @@ void iterated_local_search(packing_set& solution_set, const csr_graph& graph, co
   std::uniform_int_distribution<uint64_t> int_dist(0, graph.amount_nodes() - 1);
   std::uniform_real_distribution real_dist(0.005, 0.1);
 
-  uint64_t best_result = weighted ? solution_set.get_weight(graph) : solution_set.get_size();
+  uint64_t best_result = weighted ? solution_set.get_weight() : solution_set.get_size();
 
   std::set<uint64_t> curr_nodes;
   std::set<uint64_t> next_nodes;
@@ -38,21 +38,21 @@ void iterated_local_search(packing_set& solution_set, const csr_graph& graph, co
     perturb_solution(graph, solution_set, curr_nodes, max_node_amount, int_dist, real_dist, gen);
     maximize_solution(graph, solution_set, curr_nodes, next_nodes, max_node_amount, weighted);
 
-    if (is_better(graph, solution_set, best_result, weighted)) {
-      best_result = weighted ? solution_set.get_weight(graph) : solution_set.get_size();
+    if (is_better(solution_set, best_result, weighted)) {
+      best_result = weighted ? solution_set.get_weight() : solution_set.get_size();
       solution_set.clear_changelog();
       print_update = true;
     } else {
       solution_set.unwind(graph);
     }
 
-    if (print_update && i % 100 == 0) {
+    if (print_update && i % 1000 == 0) {
       const p_time curr = std::chrono::steady_clock::now();
       const milliseconds diff = std::chrono::duration_cast<std::chrono::milliseconds>(curr - begin);
 
       std::cout
           << std::format("\rIteration: {:6},  Solution Size: {:8}, ", i, best_result)
-          << std::format("Found in {:9} seconds", static_cast<double>(diff.count()) / 1000.)
+          << std::format("Found in {:9} seconds, ", static_cast<double>(diff.count()) / 1000.)
           << std::flush;
 
       print_update = false;
@@ -106,9 +106,9 @@ void perturb_solution(const csr_graph& graph, packing_set& solution_set,
   }
 }
 
-bool is_better(const csr_graph& graph, const packing_set& solution_set, const uint64_t& prev, const bool& weighted) {
+bool is_better(const packing_set& solution_set, const uint64_t& prev, const bool& weighted) {
   if (weighted) {
-    return solution_set.get_weight(graph) > prev;
+    return solution_set.get_weight() > prev;
   }
   return solution_set.get_size() > prev;
 }

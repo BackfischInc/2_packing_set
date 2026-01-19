@@ -15,7 +15,7 @@ void perturb_solution(const csr_graph& graph, packing_set& solution_set,
                              std::uniform_real_distribution<>& real_dist,
                              std::mt19937& gen);
 
-bool is_better(const csr_graph& graph, const packing_set& solution_set,
+bool is_better(const packing_set& solution_set,
                const uint64_t& prev, const bool& weighted);
 
 #endif //ITERATED_LS_HPP
