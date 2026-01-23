@@ -5,8 +5,8 @@
 #include <vector>
 #include <cstring>
 #include <set>
-#include <span>
 #include <stack>
+#include <unordered_set>
 
 #include "../graph/csr_graph.hpp"
 
@@ -14,12 +14,14 @@ class packing_set {
   std::vector<uint8_t> solution_set;
   std::vector<uint64_t> set_neighbors;
   std::stack<uint64_t> changelog;
+  std::set<uint64_t> dist_set_neighbors;
 
   uint64_t size = 0;
   uint64_t weight = 0;
 
 public:
-  explicit packing_set(const uint64_t& n) : solution_set(n, 0), set_neighbors(n, -1) {}
+  explicit packing_set(const uint64_t& n) :
+    solution_set(n, 0), set_neighbors(n, -1) {}
 
   [[nodiscard]] uint64_t get_size() const { return size; }
 
@@ -53,15 +55,14 @@ public:
 
   void remove_solution_node(const uint64_t& id, const csr_graph& graph);
 
-  void remove_solution_nodes(const std::set<uint64_t>& ids, const csr_graph& graph);
+  void remove_solution_nodes(const std::unordered_set<uint64_t>& ids, const csr_graph& graph);
 
-  [[nodiscard]] std::set<uint64_t> get_set_partners(const uint64_t& curr, const std::span<const uint64_t>& nodes) const;
+  void get_set_partners(std::unordered_set<uint64_t>& result,
+    const uint64_t& curr, const csr_graph& graph) const;
 
-  static uint64_t get_weight(const std::set<uint64_t>& set, const csr_graph& graph);
+  static uint64_t get_weight(const std::unordered_set<uint64_t>& set_nodes, const csr_graph& graph);
 
-  [[nodiscard]] bool verify_set_neighbors(const csr_graph& graph) const;
-
-  void unwind(const csr_graph& graph);
+  void unwind(const csr_graph& graph, std::unordered_set<uint64_t>& set_nodes);
 
   void clear_changelog();
 };

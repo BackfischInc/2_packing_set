@@ -42,9 +42,7 @@ void local_search(const csr_graph& graph, packing_set& solution_set, const bool&
 bool search_node(const uint64_t& curr, const csr_graph& graph, packing_set& solution_set, temperature& temp,
                  uint64_t& current_result, const uint64_t& iteration,
                  const double& random_value, const bool& weighted) {
-  const auto& nodes_to_check = graph.get_neighbors(curr);
-
-  const std::set<uint64_t> set_nodes = solution_set.get_set_partners(curr, nodes_to_check);
+  const std::set<uint64_t> set_nodes = solution_set.get_set_partners(curr, graph);
   const uint64_t& weight = packing_set::get_weight(set_nodes, graph);
 
   if (direct_swap(set_nodes.size(), weight, graph.get_weight(curr), weighted) ||

@@ -1,5 +1,6 @@
 #include "iterated_ls.hpp"
 #include "local_swaps.hpp"
+#include "../packing_set/iteration_queue.hpp"
 
 #include <chrono>
 #include <format>
@@ -15,13 +16,10 @@ void iterated_local_search(packing_set& solution_set, const csr_graph& graph, co
   std::uniform_int_distribution<uint64_t> int_dist(0, graph.amount_nodes() - 1);
   std::uniform_real_distribution real_dist(0.005, 0.1);
 
+  iteration_queue queue(graph.amount_nodes(), 1000);
   uint64_t best_result = weighted ? solution_set.get_weight() : solution_set.get_size();
-
-  std::set<uint64_t> curr_nodes;
-  std::set<uint64_t> next_nodes;
-
+  std::unordered_set<uint64_t> set_nodes;
   const p_time begin = std::chrono::steady_clock::now();
-
   bool print_update = false;
 
   for (int i = 0; ; ++i) {
@@ -35,15 +33,15 @@ void iterated_local_search(packing_set& solution_set, const csr_graph& graph, co
 
     constexpr uint64_t max_node_amount = 30;
 
-    perturb_solution(graph, solution_set, curr_nodes, max_node_amount, int_dist, real_dist, gen);
-    maximize_solution(graph, solution_set, curr_nodes, next_nodes, max_node_amount, weighted);
+    perturb_solution(graph, solution_set, queue, max_node_amount, set_nodes, int_dist, real_dist, gen);
+    maximize_solution(graph, solution_set, set_nodes, queue, weighted);
 
     if (is_better(solution_set, best_result, weighted)) {
       best_result = weighted ? solution_set.get_weight() : solution_set.get_size();
       solution_set.clear_changelog();
       print_update = true;
     } else {
-      solution_set.unwind(graph);
+      solution_set.unwind(graph, set_nodes);
     }
 
     if (print_update && i % 1000 == 0) {
@@ -52,7 +50,7 @@ void iterated_local_search(packing_set& solution_set, const csr_graph& graph, co
 
       std::cout
           << std::format("\rIteration: {:6},  Solution Size: {:8}, ", i, best_result)
-          << std::format("Found in {:9} seconds, ", static_cast<double>(diff.count()) / 1000.)
+          << std::format("Found in {:9} seconds", static_cast<double>(diff.count()) / 1000.)
           << std::flush;
 
       print_update = false;
@@ -61,7 +59,8 @@ void iterated_local_search(packing_set& solution_set, const csr_graph& graph, co
 }
 
 void perturb_solution(const csr_graph& graph, packing_set& solution_set,
-                      std::set<uint64_t>& next_nodes, const uint64_t& max_node_amount,
+                      iteration_queue& queue, const uint64_t& max_node_amount,
+                      std::unordered_set<uint64_t>& set_nodes,
                       std::uniform_int_distribution<uint64_t>& int_dist,
                       std::uniform_real_distribution<>& real_dist,
                       std::mt19937& gen) {
@@ -69,34 +68,40 @@ void perturb_solution(const csr_graph& graph, packing_set& solution_set,
   const double iter_amount = real_dist(gen);
   const double max_iterations = static_cast<double>(graph.amount_nodes()) / iter_amount;
 
-  for (int i = 0; i < max_iterations && next_nodes.size() < max_node_amount; ++i) {
+  for (int i = 0; i < max_iterations && queue.size() < max_node_amount; ++i) {
     if (solution_set.get_value(curr)) {
       solution_set.remove_solution_node(curr, graph);
 
       std::span<const uint64_t> neighbors = graph.get_neighbors(curr);
-      next_nodes.insert(neighbors.begin(), neighbors.end());
-
-      for (const uint64_t& node: next_nodes) {
-        neighbors = graph.get_neighbors(node);
-        next_nodes.insert(neighbors.begin(), neighbors.end());
+      for (const uint64_t& neighbor: neighbors) {
+        queue.add_node(neighbor);
       }
+
+      for (const uint64_t& node: neighbors) {
+        for (const uint64_t& neighbor: graph.get_neighbors(node)) {
+          queue.add_node(neighbor);
+        }
+      }
+
     } else {
-      std::set<uint64_t> set_nodes = solution_set.get_set_partners(curr, graph.get_neighbors(curr));
+      solution_set.get_set_partners(set_nodes, curr, graph);
       solution_set.remove_solution_nodes(set_nodes, graph);
       solution_set.add_solution_node(curr, graph);
 
       for (const uint64_t& node: set_nodes) {
         std::span<const uint64_t> neighbors = graph.get_neighbors(node);
-        next_nodes.insert(neighbors.begin(), neighbors.end());
+        for (const uint64_t& neighbor : neighbors) {
+          queue.add_node(neighbor);
+
+          for (const uint64_t& neighbor_2 : graph.get_neighbors(neighbor)) {
+            queue.add_node(neighbor_2);
+          }
+        }
       }
 
-      for (const uint64_t& node: next_nodes) {
-        std::span<const uint64_t> neighbors = graph.get_neighbors(node);
-        next_nodes.insert(neighbors.begin(), neighbors.end());
+      for (const uint64_t& neighbor: graph.get_neighbors(curr)) {
+        queue.add_node(neighbor);
       }
-
-      std::span<const uint64_t> neighbors = graph.get_neighbors(curr);
-      next_nodes.insert(neighbors.begin(), neighbors.end());
     }
 
     for (int j = 0; j < 3; ++j) {
