@@ -1,84 +1,49 @@
 #include "local_swaps.hpp"
 
-#include <ranges>
-#include <random>
+#include "../packing_set/iteration_queue.hpp"
 
 void maximize_solution(const csr_graph& graph, packing_set& solution_set,
-                       std::set<uint64_t>& curr_nodes, std::set<uint64_t>& next_nodes,
-                       const uint64_t& max_node_amount, const bool& weighted) {
+                       std::unordered_set<uint64_t>& set_nodes,
+                       iteration_queue& queue, const bool& weighted) {
   bool swap_occurred = true;
-  int iter = 0;
 
   while (swap_occurred) {
-    iter++;
+    queue.next_iter();
     swap_occurred = false;
 
-    for (const uint64_t& curr: curr_nodes) {
+    for (const uint64_t& curr: queue.curr_nodes()) {
       if (solution_set.get_value(curr)) {
-        /*if (find_2_1_swap(curr, graph, solution_set, next_nodes, weighted)) {
-          swap_occurred = true;
-        }*/
+        swap_occurred |= find_2_1_swap(curr, graph, solution_set, queue, weighted);
       } else {
-        if (try_auto_include(curr, graph, solution_set, next_nodes, weighted)) {
-          swap_occurred = true;
-        }
-      }
-
-      if (next_nodes.size() >= max_node_amount) {
-        break;
+        swap_occurred |= try_auto_include(curr, graph, solution_set, set_nodes, queue, weighted);
       }
     }
-
-    curr_nodes = next_nodes;
-    next_nodes.clear();
   }
 }
 
 bool try_auto_include(const uint64_t& curr, const csr_graph& graph, packing_set& solution_set,
-                      std::set<uint64_t>& next_nodes, const bool& weighted) {
-  const std::set<uint64_t>& set_neighbors = solution_set.get_set_partners(curr, graph.get_neighbors(curr));
+                      std::unordered_set<uint64_t>& set_nodes, iteration_queue& queue,
+                      const bool& weighted) {
+  solution_set.get_set_partners(set_nodes, curr, graph);
 
-  if (set_neighbors.empty()) {
+  if (set_nodes.empty()) {
     solution_set.add_solution_node(curr, graph);
-
-    std::span<const uint64_t> neighbors = graph.get_neighbors(curr);
-    next_nodes.insert(neighbors.begin(), neighbors.end());
+    add_neighborhood(curr, queue, graph);
     return true;
   }
 
   if (!weighted) {
-    if (set_neighbors.size() == 1) {
-      solution_set.remove_solution_nodes(set_neighbors, graph);
+    if (set_nodes.size() == 1) {
+      solution_set.remove_solution_nodes(set_nodes, graph);
       solution_set.add_solution_node(curr, graph);
-
-      for (const uint64_t& node: set_neighbors) {
-        std::span<const uint64_t> neighbors = graph.get_neighbors(node);
-        next_nodes.insert(neighbors.begin(), neighbors.end());
-      }
-
-      const std::span<const uint64_t> neighbors = graph.get_neighbors(curr);
-      next_nodes.insert(neighbors.begin(), neighbors.end());
-
+      add_neighborhood(curr, queue, graph);
       return false;
     }
   } else {
-    if (graph.get_weight(curr) > packing_set::get_weight(set_neighbors, graph)) {
-      solution_set.remove_solution_nodes(set_neighbors, graph);
+    if (graph.get_weight(curr) > packing_set::get_weight(set_nodes, graph)) {
+      solution_set.remove_solution_nodes(set_nodes, graph);
       solution_set.add_solution_node(curr, graph);
-
-      for (const uint64_t& node: set_neighbors) {
-        std::span<const uint64_t> neighbors = graph.get_neighbors(node);
-        next_nodes.insert(neighbors.begin(), neighbors.end());
-      }
-
-      std::span<const uint64_t> neighbors = graph.get_neighbors(curr);
-      next_nodes.insert(neighbors.begin(), neighbors.end());
-
-      for (const uint64_t& node: next_nodes) {
-        neighbors = graph.get_neighbors(node);
-        next_nodes.insert(neighbors.begin(), neighbors.end());
-      }
-
+      add_neighborhood(curr, queue, graph);
       return true;
     }
   }
@@ -87,7 +52,7 @@ bool try_auto_include(const uint64_t& curr, const csr_graph& graph, packing_set&
 }
 
 bool find_2_1_swap(const uint64_t& curr, const csr_graph& graph, packing_set& solution_set,
-                   std::set<uint64_t>& next_nodes, const bool& weighted) {
+                   iteration_queue& queue, const bool& weighted) {
   std::set<uint64_t> pot_nodes;
 
   for (const uint64_t& neighbor: graph.get_neighbors(curr)) {
@@ -100,7 +65,7 @@ bool find_2_1_swap(const uint64_t& curr, const csr_graph& graph, packing_set& so
     for (const uint64_t& pot_node: graph.get_neighbors(neighbor)) {
       if (!pot_nodes.contains(pot_node)) {
         if (has_potential(pot_node, curr, graph, solution_set)) {
-          if (try_swap(pot_node, curr, pot_nodes, graph, solution_set, next_nodes, weighted)) {
+          if (try_swap(pot_node, curr, pot_nodes, graph, solution_set, queue, weighted)) {
             return true;
           }
 
@@ -114,7 +79,8 @@ bool find_2_1_swap(const uint64_t& curr, const csr_graph& graph, packing_set& so
 }
 
 bool try_swap(const uint64_t& node, const uint64_t& curr, const std::set<uint64_t>& pot_neighbors,
-              const csr_graph& graph, packing_set& solution_set, std::set<uint64_t>& next_nodes, const bool& weighted) {
+              const csr_graph& graph, packing_set& solution_set,
+              iteration_queue& queue, const bool& weighted) {
   for (const uint64_t& v: pot_neighbors) {
     if (weighted && graph.get_weight(v) + graph.get_weight(node) <= graph.get_weight(curr)) {
       continue;
@@ -122,25 +88,11 @@ bool try_swap(const uint64_t& node, const uint64_t& curr, const std::set<uint64_
 
     if (!are_neighbors(graph, v, node)
         && !have_common_neighbor(graph.get_neighbors(v), graph.get_neighbors(node))) {
-
       solution_set.remove_solution_node(curr, graph);
       solution_set.add_solution_node(v, graph);
       solution_set.add_solution_node(node, graph);
-
-      std::span<const uint64_t> neighbors = graph.get_neighbors(v);
-      next_nodes.insert(neighbors.begin(), neighbors.end());
-
-      neighbors = graph.get_neighbors(node);
-      next_nodes.insert(neighbors.begin(), neighbors.end());
-
-      neighbors = graph.get_neighbors(curr);
-      next_nodes.insert(neighbors.begin(), neighbors.end());
-
-      for (const uint64_t& next: next_nodes) {
-        neighbors = graph.get_neighbors(next);
-        next_nodes.insert(neighbors.begin(), neighbors.end());
-      }
-
+      add_neighborhood(v, queue, graph);
+      add_neighborhood(node, queue, graph);
       return true;
     }
   }
@@ -192,4 +144,18 @@ bool have_common_neighbor(const std::span<const uint64_t>& a, const std::span<co
     if (a[i] < b[j]) { i++; } else { j++; }
   }
   return false;
+}
+
+void add_neighborhood(const uint64_t& node, iteration_queue& queue, const csr_graph& graph) {
+  for (const uint64_t& neighbor: graph.get_neighbors(node)) {
+    if (!queue.add_node(neighbor)) {
+      return;
+    }
+
+    for (const uint64_t& neighbor2: graph.get_neighbors(neighbor)) {
+      if (!queue.add_node(neighbor2)) {
+        return;
+      }
+    }
+  }
 }
