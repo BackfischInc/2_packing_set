@@ -10,7 +10,7 @@ class iteration_queue;
 
 void maximize_solution(const csr_graph& graph, packing_set& solution_set,
                        std::unordered_set<uint64_t>& set_nodes, iteration_queue& queue,
-                       const bool& weighted);
+                       const bool& weighted, const bool& do_2_1_swaps);
 
 bool try_auto_include(const uint64_t& curr, const csr_graph& graph, packing_set& solution_set,
                       std::unordered_set<uint64_t>& set_nodes, iteration_queue& queue,

@@ -4,7 +4,7 @@
 
 void maximize_solution(const csr_graph& graph, packing_set& solution_set,
                        std::unordered_set<uint64_t>& set_nodes,
-                       iteration_queue& queue, const bool& weighted) {
+                       iteration_queue& queue, const bool& weighted, const bool& do_2_1_swaps) {
   bool swap_occurred = true;
 
   while (swap_occurred) {
@@ -12,7 +12,7 @@ void maximize_solution(const csr_graph& graph, packing_set& solution_set,
     swap_occurred = false;
 
     for (const uint64_t& curr: queue.curr_nodes()) {
-      if (solution_set.get_value(curr)) {
+      if (do_2_1_swaps && solution_set.get_value(curr)) {
         swap_occurred |= find_2_1_swap(curr, graph, solution_set, queue, weighted);
       } else {
         swap_occurred |= try_auto_include(curr, graph, solution_set, set_nodes, queue, weighted);

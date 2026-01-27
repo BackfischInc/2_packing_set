@@ -76,5 +76,5 @@ std::span<const uint64_t> csr_graph::get_neighbors(const uint64_t& id) const {
 
   const uint64_t start_idx = id == 0 ? 0 : starts[id - 1];
 
-  return std::span{neighbors.begin() + start_idx, deg};
+  return std::span{neighbors.begin() + static_cast<long long>(start_idx), deg};
 }

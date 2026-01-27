@@ -6,10 +6,17 @@
 #include "../graph/csr_graph.hpp"
 #include "../packing_set/packing_set.hpp"
 
+struct parameters {
+  bool weighted;
+  bool verbose;
+  bool disable_2_1;
+  int queue_size;
+  int time_limit;
+};
+
 class iteration_queue;
 
-void iterated_local_search(packing_set& solution_set, const csr_graph& graph,
-                           const bool& weighted);
+void iterated_local_search(packing_set& solution_set, const csr_graph& graph, const parameters& args);
 
 void perturb_solution(const csr_graph& graph, packing_set& solution_set,
                       iteration_queue& queue, const uint64_t& max_node_amount,

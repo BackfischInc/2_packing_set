@@ -7,34 +7,38 @@
 #include <iostream>
 
 typedef std::chrono::steady_clock::time_point p_time;
-typedef std::chrono::duration<long long> seconds;
+typedef std::chrono::duration<long long> hours;
 typedef std::chrono::duration<long long, std::ratio<1, 1000>> milliseconds;
 
-void iterated_local_search(packing_set& solution_set, const csr_graph& graph, const bool& weighted) {
+void iterated_local_search(packing_set& solution_set, const csr_graph& graph, const parameters& args) {
+  const bool weighted = args.weighted;
+  const bool do_2_1_swaps = !args.disable_2_1;
+  const uint64_t max_node_amount = args.queue_size;
+
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<uint64_t> int_dist(0, graph.amount_nodes() - 1);
   std::uniform_real_distribution real_dist(0.005, 0.1);
 
-  iteration_queue queue(graph.amount_nodes(), 1000);
-  uint64_t best_result = weighted ? solution_set.get_weight() : solution_set.get_size();
+  iteration_queue queue(graph.amount_nodes(), args.queue_size * 100);
   std::unordered_set<uint64_t> set_nodes;
-  const p_time begin = std::chrono::steady_clock::now();
+  uint64_t best_result = weighted ? solution_set.get_weight() : solution_set.get_size();
+
   bool print_update = false;
 
+  const p_time begin = std::chrono::steady_clock::now();
   for (int i = 0; ; ++i) {
     if (i % 10000 == 0) {
       const p_time curr = std::chrono::steady_clock::now();
-      const seconds diff = std::chrono::duration_cast<std::chrono::seconds>(curr - begin);
-      if (diff >= std::chrono::hours(3)) {
-        break;
+      const hours diff = std::chrono::duration_cast<std::chrono::minutes>(curr - begin);
+
+      if (diff >= std::chrono::minutes(args.time_limit)) {
+        return;
       }
     }
 
-    constexpr uint64_t max_node_amount = 30;
-
     perturb_solution(graph, solution_set, queue, max_node_amount, set_nodes, int_dist, real_dist, gen);
-    maximize_solution(graph, solution_set, set_nodes, queue, weighted);
+    maximize_solution(graph, solution_set, set_nodes, queue, weighted, do_2_1_swaps);
 
     if (is_better(solution_set, best_result, weighted)) {
       best_result = weighted ? solution_set.get_weight() : solution_set.get_size();
@@ -44,16 +48,18 @@ void iterated_local_search(packing_set& solution_set, const csr_graph& graph, co
       solution_set.unwind(graph, set_nodes);
     }
 
-    if (print_update && i % 1000 == 0) {
-      const p_time curr = std::chrono::steady_clock::now();
-      const milliseconds diff = std::chrono::duration_cast<std::chrono::milliseconds>(curr - begin);
+    if (args.verbose) {
+      if (print_update) {
+        const p_time curr = std::chrono::steady_clock::now();
+        const milliseconds diff = std::chrono::duration_cast<std::chrono::milliseconds>(curr - begin);
 
-      std::cout
-          << std::format("\rIteration: {:6},  Solution Size: {:8}, ", i, best_result)
-          << std::format("Found in {:9} seconds", static_cast<double>(diff.count()) / 1000.)
-          << std::flush;
+        std::cout
+            << std::format("Solution Size: {:10}, ", best_result)
+            << std::format("Found in {:9} seconds", static_cast<double>(diff.count()) / 1000.)
+            << std::endl;
 
-      print_update = false;
+        print_update = false;
+      }
     }
   }
 }
