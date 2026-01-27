@@ -45,7 +45,31 @@ std::vector<std::string> get_input_files(const int& argc, char** argv) {
   return names;
 }
 
+void print_help_options() {
+  std::cout << "-i [file name 1] [file name 2] [...]" << std::endl;
+  std::cout << "Input the names of all files to be worked on" << std::endl;
+  std::cout << "===========" << std::endl;
+  std::cout << "-weighted" << std::endl;
+  std::cout << "executes a weighted search for all given graphs" << std::endl;
+  std::cout << "===========" << std::endl;
+  std::cout << "-verbose" << std::endl;
+  std::cout << "prints out updates to the solution in every iteration with an improvement" << std::endl;
+  std::cout << "===========" << std::endl;
+  std::cout << "-disable_2_1" << std::endl;
+  std::cout << "if given will not look for and execute 2-1 swaps" << std::endl;
+  std::cout << "===========" << std::endl;
+  std::cout << "-max_size [size]" << std::endl;
+  std::cout << "maximum amount of nodes at the start of each iteration" << std::endl;
+  std::cout << "===========" << std::endl;
+  std::cout << "-time_limit [size]" << std::endl;
+  std::cout << "time limit for the execution time in minutes" << std::endl;
+}
+
 int main(const int argc, char* argv[]) {
+  if (cmdOptionExists(argc, argv, "-h")) {
+    print_help_options();
+  }
+
   const std::vector<std::string> file_names = get_input_files(argc, argv);
   if (file_names.empty()) {
     std::cout << "No input files found" << std::endl;
