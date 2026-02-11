@@ -23,6 +23,8 @@ public:
   [[nodiscard]] const bool& is_weighted() const { return weighted; }
 
   [[nodiscard]] const uint64_t& get_weight(const uint64_t& id) const { return weights[id]; }
+
+  void output_square_graph(const std::string& name) const;
 };
 
 #endif

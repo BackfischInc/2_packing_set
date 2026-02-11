@@ -63,6 +63,10 @@ void print_help_options() {
   std::cout << "===========" << std::endl;
   std::cout << "-time_limit [size]" << std::endl;
   std::cout << "time limit for the execution time in minutes" << std::endl;
+  std::cout << "===========" << std::endl;
+  std::cout << "-output_square" << std::endl;
+  std::cout << "create and output a file containing the square graph" << std::endl;
+  std::cout << "===========" << std::endl;
 }
 
 int main(const int argc, char* argv[]) {
@@ -101,6 +105,13 @@ int main(const int argc, char* argv[]) {
     std::cout << "parsing the graph...";
     const csr_graph graph(file_name);
     std::cout << "[DONE]" << std::endl;
+
+    if (cmdOptionExists(argc, argv, "-output_square")) {
+      std::cout << "===========" << std::endl;
+      std::cout << "creating the square graph...";
+      graph.output_square_graph(file_name);
+      std::cout << "[DONE]" << std::endl;
+    }
 
     std::cout << "===========" << std::endl;
 

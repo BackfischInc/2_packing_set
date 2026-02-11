@@ -4,6 +4,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <unordered_set>
 
 csr_graph::csr_graph(const std::string& file_name) {
   std::ifstream file(file_name);
@@ -77,4 +78,39 @@ std::span<const uint64_t> csr_graph::get_neighbors(const uint64_t& id) const {
   const uint64_t start_idx = id == 0 ? 0 : starts[id - 1];
 
   return std::span{neighbors.begin() + static_cast<long long>(start_idx), deg};
+}
+
+void csr_graph::output_square_graph(const std::string& name) const {
+  std::vector<std::unordered_set<uint64_t>> square_graph(n);
+  uint64_t edge_count = 0;
+
+  for (int i = 0; i < n; ++i) {
+    std::span<const uint64_t> one_neighbors = get_neighbors(i);
+
+    for (const uint64_t& neighbor: one_neighbors) {
+      square_graph[i].insert(neighbor + 1);
+
+      for (const uint64_t& two_neighbor: get_neighbors(neighbor)) {
+        square_graph[i].insert(two_neighbor + 1);
+      }
+    }
+
+    edge_count += square_graph[i].size();
+  }
+
+  std::ofstream outfile;
+  outfile.open(name + "_squared.graph");
+
+  outfile << n << " " << edge_count << (weighted ? " 10" : " 0") << std::endl;
+
+  for (int i = 0; i < n; ++i) {
+    if (weighted) {
+      outfile << weights[i] << " ";
+    }
+    for (const uint64_t& neighbor: square_graph[i]) {
+      outfile << neighbor << " ";
+    }
+  }
+
+  outfile.close();
 }
