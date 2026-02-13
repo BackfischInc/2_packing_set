@@ -108,7 +108,7 @@ int main(const int argc, char* argv[]) {
 
     if (cmdOptionExists(argc, argv, "-output_square")) {
       std::cout << "===========" << std::endl;
-      std::cout << "creating the square graph...";
+      std::cout << "creating the square graph..." << std::endl;
       graph.output_square_graph(file_name);
       std::cout << "[DONE]" << std::endl;
     }
