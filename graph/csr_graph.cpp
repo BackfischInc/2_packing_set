@@ -199,6 +199,10 @@ void csr_graph::output_square_graph(const std::string& name) const {
     uint64_t begin = sq_starts[u];
     uint64_t end = begin + degree[u];
 
+    if (weighted) {
+      out << get_weight(u) << " ";
+    }
+
     for (uint64_t i = begin; i < end; ++i)
       out << (sq_neighbors[i] + 1) << " ";
 
