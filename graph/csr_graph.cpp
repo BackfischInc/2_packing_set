@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <sstream>
 
 csr_graph::csr_graph(const std::string& file_name) {
@@ -45,7 +46,7 @@ csr_graph::csr_graph(const std::string& file_name) {
     while (iss >> value) {
       if (start) {
         start = false;
-        weights[curr_node]= value;
+        weights[curr_node] = value;
       } else {
         numbers.push_back(value - 1);
       }
@@ -80,73 +81,131 @@ std::span<const uint64_t> csr_graph::get_neighbors(const uint64_t& id) const {
 }
 
 void csr_graph::output_square_graph(const std::string& name) const {
-  std::ofstream out(name + "_squared.graph");
+  const uint64_t N = n;
 
-  // We'll count edges while generating
-  uint64_t total_edges = 0;
-
-  // Temporary visitation array
-  std::vector<uint32_t> visited(n, 0);
+  // ----------- PASS 1: Compute degrees of square graph -----------
+  std::vector<uint32_t> degree(N, 0);
+  std::unique_ptr<uint32_t[]> visited(new uint32_t[N]());
   uint32_t current_mark = 1;
 
-  // First pass: count edges
-  for (uint64_t u = 0; u < n; ++u) {
-    std::cout << u << std::endl;
-    current_mark++;
+  for (uint32_t u = 0; u < N; ++u) {
+    std::cout << "\r" << u << " / " << n << std::flush;
 
-    // 1-hop
-    for (uint64_t i = u == 0 ? 0 : starts[u - 1]; i < (u == n - 1 ? 2 * m : starts[u]); ++i) {
+    current_mark++;
+    uint32_t local_degree = 0;
+
+    uint64_t u_begin = (u == 0 ? 0 : starts[u - 1]);
+    uint64_t u_end = (u == N - 1 ? 2 * m : starts[u]);
+
+    for (uint64_t i = u_begin; i < u_end; ++i) {
       uint32_t v = neighbors[i];
       if (v == u) continue;
+
       if (visited[v] != current_mark) {
         visited[v] = current_mark;
-        total_edges++;
+        if (v > u) local_degree++;
       }
 
       // 2-hop
-      for (uint64_t j = v == 0 ? 0 : starts[v - 1]; j < (v == n - 1 ? 2 * m : starts[v]); ++j) {
+      uint64_t v_begin = (v == 0 ? 0 : starts[v - 1]);
+      uint64_t v_end = (v == N - 1 ? 2 * m : starts[v]);
+
+      for (uint64_t j = v_begin; j < v_end; ++j) {
         uint32_t w = neighbors[j];
         if (w == u) continue;
+
         if (visited[w] != current_mark) {
           visited[w] = current_mark;
-          total_edges++;
+          if (w > u) local_degree++;
         }
       }
     }
+
+    degree[u] = local_degree;
   }
 
-  total_edges /= 2; // undirected graph
+  // ----------- Build CSR prefix sums -----------
+  std::vector<uint64_t> sq_starts(N);
+  uint64_t total_edges = 0;
 
-  // METIS header
-  out << n << " " << total_edges << "\n";
+  for (uint32_t i = 0; i < N; ++i) {
+    total_edges += degree[i];
+    sq_starts[i] = total_edges;
+  }
 
-  // Second pass: write adjacency
-  std::fill(visited.begin(), visited.end(), 0);
+  // Each counted edge was v > u, so total_edges already correct
+  uint64_t M2 = total_edges;
+
+  std::vector<uint32_t> sq_neighbors(2 * M2);
+
+  // Reset degree to reuse as insertion pointer
+  std::fill(degree.begin(), degree.end(), 0);
+  std::fill(visited.get(), visited.get() + N, 0);
   current_mark = 1;
 
-  for (uint32_t u = 0; u < n; ++u) {
+  std::cout << "\n";
+
+  // ----------- PASS 2: Fill symmetric adjacency -----------
+  for (uint32_t u = 0; u < N; ++u) {
+    std::cout << "\r" << u << " / " << n << std::flush;
+
     current_mark++;
 
-    for (uint32_t i = u == 0 ? 0 : starts[u - 1]; i < u == n - 1 ? 2 * m : starts[u]; ++i) {
+    uint64_t u_begin = (u == 0 ? 0 : starts[u - 1]);
+    uint64_t u_end = (u == N - 1 ? 2 * m : starts[u]);
+
+    for (uint64_t i = u_begin; i < u_end; ++i) {
       uint32_t v = neighbors[i];
       if (v == u) continue;
 
       if (visited[v] != current_mark) {
         visited[v] = current_mark;
-        out << (v + 1) << " ";
+
+        if (v > u) {
+          uint64_t pos_u = sq_starts[u] - degree[u]++;
+          uint64_t pos_v = sq_starts[v] - degree[v]++;
+          sq_neighbors[pos_u] = v;
+          sq_neighbors[pos_v] = u;
+        }
       }
 
-      for (uint32_t j = v == 0 ? 0 : starts[v - 1]; j < v == n - 1 ? 2 * m : starts[v]; ++j) {
+      uint64_t v_begin = (v == 0 ? 0 : starts[v - 1]);
+      uint64_t v_end = (v == N - 1 ? 2 * m : starts[v]);
+
+      for (uint64_t j = v_begin; j < v_end; ++j) {
         uint32_t w = neighbors[j];
         if (w == u) continue;
 
         if (visited[w] != current_mark) {
           visited[w] = current_mark;
-          out << w + 1 << " ";
+
+          if (w > u) {
+            uint64_t pos_u = sq_starts[u] - degree[u]++;
+            uint64_t pos_w = sq_starts[w] - degree[w]++;
+            sq_neighbors[pos_u] = w;
+            sq_neighbors[pos_w] = u;
+          }
         }
       }
     }
+  }
 
+  // ----------- Output in METIS format -----------
+  std::ofstream out(name + "_squared.graph");
+  out << N << " " << M2 << (weighted ? " 10" : "") << "\n";
+
+  std::cout << "\n";
+  for (uint32_t u = 0; u < N; ++u) {
+    std::cout << "\r" << u << " / " << n << std::flush;
+
+    uint64_t begin = (u == 0 ? 0 : sq_starts[u - 1]);
+    uint64_t end = sq_starts[u];
+
+    for (uint64_t i = begin; i < end; ++i) {
+      out << (sq_neighbors[i] + 1) << " ";
+    }
     out << "\n";
   }
+
+  out.close();
 }
