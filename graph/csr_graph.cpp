@@ -80,39 +80,73 @@ std::span<const uint64_t> csr_graph::get_neighbors(const uint64_t& id) const {
 }
 
 void csr_graph::output_square_graph(const std::string& name) const {
-  std::vector<uint8_t> square_graph(n, 0);
-  uint64_t edge_count = 0;
+  std::ofstream out(name + "_squared.graph");
 
-  std::ofstream outfile;
-  outfile.open(name + "_squared.graph");
+  // We'll count edges while generating
+  uint64_t total_edges = 0;
 
-  for (int i = 0; i < n; ++i) {
-    std::cout << "\r" << i << " / " << n << std::flush;
+  // Temporary visitation array
+  std::vector<uint32_t> visited(n, 0);
+  uint32_t current_mark = 1;
 
-    std::span<const uint64_t> one_neighbors = get_neighbors(i);
-    for (const uint64_t& neighbor: one_neighbors) {
-      square_graph[neighbor] = 1;
+  // First pass: count edges
+  for (uint64_t u = 0; u < n; ++u) {
+    std::cout << u << std::endl;
+    current_mark++;
 
-      for (const uint64_t& two_neighbor: get_neighbors(neighbor)) {
-        square_graph[two_neighbor] = 1;
+    // 1-hop
+    for (uint64_t i = u == 0 ? 0 : starts[u - 1]; i < (u == n - 1 ? 2 * m : starts[u]); ++i) {
+      uint32_t v = neighbors[i];
+      if (v == u) continue;
+      if (visited[v] != current_mark) {
+        visited[v] = current_mark;
+        total_edges++;
       }
-    }
 
-    for (int j = 0; j < n; ++j) {
-      if (weighted) {
-        outfile << weights[i] << " ";
-      }
-
-      if (square_graph[j]) {
-        outfile << j+1 << " ";
-        ++edge_count;
+      // 2-hop
+      for (uint64_t j = v == 0 ? 0 : starts[v - 1]; j < (v == n - 1 ? 2 * m : starts[v]); ++j) {
+        uint32_t w = neighbors[j];
+        if (w == u) continue;
+        if (visited[w] != current_mark) {
+          visited[w] = current_mark;
+          total_edges++;
+        }
       }
     }
   }
 
-  edge_count /= 2;
+  total_edges /= 2; // undirected graph
 
-  std::cout << n << " " << edge_count << (weighted ? " 10" : " 0") << std::endl;
+  // METIS header
+  out << n << " " << total_edges << "\n";
 
-  outfile.close();
+  // Second pass: write adjacency
+  std::fill(visited.begin(), visited.end(), 0);
+  current_mark = 1;
+
+  for (uint32_t u = 0; u < n; ++u) {
+    current_mark++;
+
+    for (uint32_t i = u == 0 ? 0 : starts[u - 1]; i < u == n - 1 ? 2 * m : starts[u]; ++i) {
+      uint32_t v = neighbors[i];
+      if (v == u) continue;
+
+      if (visited[v] != current_mark) {
+        visited[v] = current_mark;
+        out << (v + 1) << " ";
+      }
+
+      for (uint32_t j = v == 0 ? 0 : starts[v - 1]; j < v == n - 1 ? 2 * m : starts[v]; ++j) {
+        uint32_t w = neighbors[j];
+        if (w == u) continue;
+
+        if (visited[w] != current_mark) {
+          visited[w] = current_mark;
+          out << w + 1 << " ";
+        }
+      }
+    }
+
+    out << "\n";
+  }
 }
