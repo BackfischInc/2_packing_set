@@ -11,7 +11,7 @@ class csr_graph {
   std::vector<uint64_t> neighbors;
   std::vector<uint64_t> weights;
   uint64_t n, m;
-  bool weighted = false;
+  bool weighted = true;
 
 public:
   explicit csr_graph(const std::string& file_name);
