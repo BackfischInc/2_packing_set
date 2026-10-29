@@ -3,10 +3,11 @@
 #include <iostream>
 #include <random>
 #include <chrono>
+#include <algorithm>
 
 void local_search(const csr_graph& graph, packing_set& solution_set, const bool& weighted,
                   const unsigned long long& iterations, temperature& temp) {
-  uint64_t current_result = weighted ? solution_set.get_weight(graph) : solution_set.get_size();
+  uint64_t current_result = weighted ? solution_set.get_weight() : solution_set.get_size();
   uint64_t best_result = current_result;
 
   std::random_device rd;
@@ -15,7 +16,8 @@ void local_search(const csr_graph& graph, packing_set& solution_set, const bool&
   std::uniform_real_distribution double_dist(0.0, 1.0);
 
   constexpr double output_freq = 0.1;
-  const auto output_interval = static_cast<unsigned long long>(static_cast<double>(iterations) * output_freq);
+  const auto output_interval = std::max<unsigned long long>(
+      1, static_cast<unsigned long long>(static_cast<double>(iterations) * output_freq));
 
   for (uint64_t i = 0; i <= iterations; i++) {
     const uint64_t curr = uint64_t_dist(gen);
@@ -42,8 +44,9 @@ void local_search(const csr_graph& graph, packing_set& solution_set, const bool&
 bool search_node(const uint64_t& curr, const csr_graph& graph, packing_set& solution_set, temperature& temp,
                  uint64_t& current_result, const uint64_t& iteration,
                  const double& random_value, const bool& weighted) {
-  const std::set<uint64_t> set_nodes = solution_set.get_set_partners(curr, graph);
-  const uint64_t& weight = packing_set::get_weight(set_nodes, graph);
+  std::vector<uint64_t> set_nodes;
+  solution_set.get_set_partners(set_nodes, curr, graph);
+  const uint64_t weight = packing_set::get_weight(set_nodes, graph);
 
   if (direct_swap(set_nodes.size(), weight, graph.get_weight(curr), weighted) ||
       random_value <= temp.get_probability(

@@ -96,19 +96,21 @@ int main(const int argc, char* argv[]) {
     time_limit = std::stoi(limit);
   }
 
+  const bool output_square = cmdOptionExists(argc, argv, "-output_square");
+
   const parameters args(weighted, verbose, disable_2_1, queue_size, time_limit);
 
   for (const auto& file_name: file_names) {
     std::cout << "===========" << std::endl;
-
     std::cout << file_name << std::endl;
+
     std::cout << "parsing the graph...";
     const csr_graph graph(file_name);
     std::cout << "[DONE]" << std::endl;
 
-    if (cmdOptionExists(argc, argv, "-output_square")) {
+    if (output_square) {
       std::cout << "===========" << std::endl;
-      std::cout << "creating the square graph..." << std::endl;
+      std::cout << "creating the square graph...";
       graph.output_square_graph(file_name);
       std::cout << "[DONE]" << std::endl;
     }
@@ -122,11 +124,8 @@ int main(const int argc, char* argv[]) {
 
     const uint64_t solution_size = weighted ? solution_set.get_weight() : solution_set.get_size();
     std::cout << "final solution size: " << solution_size << std::endl;
-    if (is_valid(graph, solution_set)) {
-      std::cout << "valid solution" << std::endl;
-    } else {
-      std::cout << "invalid solution" << std::endl;
-    }
+    const bool valid = is_valid(graph, solution_set);
+    std::cout << (valid ? "" : "in") << "valid solution" << std::endl;
   }
 
   return 0;
