@@ -20,7 +20,10 @@ class iteration_queue {
 
 public:
   explicit iteration_queue(const uint64_t& size, const uint64_t& max_size):
-    indicator(size), max_size(max_size) {}
+    indicator(size), max_size(max_size) {
+    curr_indices.reserve(max_size);
+    next_indices.reserve(max_size);
+  }
 
   bool add_node(const uint64_t& index);
 

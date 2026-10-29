@@ -5,9 +5,9 @@
 #include <chrono>
 #include <format>
 #include <iostream>
+#include <algorithm>
 
 typedef std::chrono::steady_clock::time_point p_time;
-typedef std::chrono::duration<long long> hours;
 typedef std::chrono::duration<long long, std::ratio<1, 1000>> milliseconds;
 
 void iterated_local_search(packing_set& solution_set, const csr_graph& graph, const parameters& args) {
@@ -21,31 +21,34 @@ void iterated_local_search(packing_set& solution_set, const csr_graph& graph, co
   std::uniform_real_distribution real_dist(0.005, 0.1);
 
   iteration_queue queue(graph.amount_nodes(), args.queue_size * 100);
-  std::unordered_set<uint64_t> set_nodes;
+  swap_workspace swap_state(graph.amount_nodes());
+  std::vector<uint64_t> set_nodes;
+  set_nodes.reserve(16);
   uint64_t best_result = weighted ? solution_set.get_weight() : solution_set.get_size();
 
   bool print_update = false;
 
   const p_time begin = std::chrono::steady_clock::now();
-  for (int i = 0; ; ++i) {
-    if (i % 10000 == 0) {
+  for (uint64_t i = 0; ; ++i) {
+    if ((i & 1023) == 0) {
       const p_time curr = std::chrono::steady_clock::now();
-      const hours diff = std::chrono::duration_cast<std::chrono::minutes>(curr - begin);
+      const auto diff = std::chrono::duration_cast<std::chrono::seconds>(curr - begin);
 
-      if (diff >= std::chrono::minutes(args.time_limit)) {
+      if (diff >= std::chrono::seconds(args.time_limit * 60LL)) {
         return;
       }
     }
 
+    solution_set.begin_transaction();
     perturb_solution(graph, solution_set, queue, max_node_amount, set_nodes, int_dist, real_dist, gen);
-    maximize_solution(graph, solution_set, set_nodes, queue, weighted, do_2_1_swaps);
+    maximize_solution(graph, solution_set, set_nodes, queue, weighted, do_2_1_swaps, swap_state);
 
-    if (is_better(solution_set, best_result, weighted)) {
-      best_result = weighted ? solution_set.get_weight() : solution_set.get_size();
-      solution_set.clear_changelog();
-      print_update = true;
+    if (weighted ? solution_set.get_weight() > best_result : solution_set.get_size() > best_result) {     // O(1)
+      best_result = weighted ? solution_set.get_weight() : solution_set.get_size();                       // O(1)
+      solution_set.clear_changelog();                                                                     // O(n)
+      print_update = true;                                                                                // O(1)
     } else {
-      solution_set.unwind(graph, set_nodes);
+      solution_set.unwind(graph, set_nodes);                                                           // O(n * deg²)
     }
 
     if (args.verbose) {
@@ -64,62 +67,48 @@ void iterated_local_search(packing_set& solution_set, const csr_graph& graph, co
   }
 }
 
+// O(n * deg³)
 void perturb_solution(const csr_graph& graph, packing_set& solution_set,
                       iteration_queue& queue, const uint64_t& max_node_amount,
-                      std::unordered_set<uint64_t>& set_nodes,
+                      std::vector<uint64_t>& set_nodes,
                       std::uniform_int_distribution<uint64_t>& int_dist,
                       std::uniform_real_distribution<>& real_dist,
                       std::mt19937& gen) {
-  uint64_t curr = int_dist(gen);
-  const double iter_amount = real_dist(gen);
-  const double max_iterations = static_cast<double>(graph.amount_nodes()) / iter_amount;
+  uint64_t curr = int_dist(gen);                                                        // O(1)
+  const double iter_amount = real_dist(gen);                                            // O(1)
+  // iter_amount is the fraction of the graph used for the perturbation.
+  // Dividing by it performed 10n--200n mutations per perturbation.
+  const uint64_t max_iterations = std::max<uint64_t>(
+      1, static_cast<uint64_t>(static_cast<double>(graph.amount_nodes()) * iter_amount));
 
-  for (int i = 0; i < max_iterations && queue.size() < max_node_amount; ++i) {
-    if (solution_set.get_value(curr)) {
-      solution_set.remove_solution_node(curr, graph);
-
-      std::span<const uint64_t> neighbors = graph.get_neighbors(curr);
-      for (const uint64_t& neighbor: neighbors) {
-        queue.add_node(neighbor);
+  for (uint64_t i = 0; i < max_iterations && queue.size() < max_node_amount; ++i) {
+    if (solution_set.get_value(curr)) {                                                    // O(1)
+      solution_set.remove_solution_node(curr, graph);                                      // O(deg)
+      if (!add_neighborhood(curr, queue, graph)) {
+        return;
       }
-
-      for (const uint64_t& node: neighbors) {
-        for (const uint64_t& neighbor: graph.get_neighbors(node)) {
-          queue.add_node(neighbor);
-        }
-      }
-
     } else {
-      solution_set.get_set_partners(set_nodes, curr, graph);
-      solution_set.remove_solution_nodes(set_nodes, graph);
-      solution_set.add_solution_node(curr, graph);
+      solution_set.get_set_partners(set_nodes, curr, graph);                            // O(deg)
+      solution_set.remove_solution_nodes(set_nodes, graph);                                // O(deg³)
+      solution_set.add_solution_node(curr, graph);                                         // O(deg²)
 
-      for (const uint64_t& node: set_nodes) {
-        std::span<const uint64_t> neighbors = graph.get_neighbors(node);
-        for (const uint64_t& neighbor : neighbors) {
-          queue.add_node(neighbor);
-
-          for (const uint64_t& neighbor_2 : graph.get_neighbors(neighbor)) {
-            queue.add_node(neighbor_2);
-          }
+      for (const uint64_t& node: set_nodes) {                                              // O(deg²)
+        if (!add_neighborhood(node, queue, graph)) {
+          return;
         }
       }
 
-      for (const uint64_t& neighbor: graph.get_neighbors(curr)) {
-        queue.add_node(neighbor);
+      if (!add_neighborhood(curr, queue, graph)) {
+        return;
       }
     }
 
-    for (int j = 0; j < 3; ++j) {
-      const auto& neighbors = graph.get_neighbors(curr);
-      curr = neighbors[int_dist(gen) % neighbors.size()];
+    for (int j = 0; j < 3; ++j) {                                                          // O(1)
+      const auto& neighbors = graph.get_neighbors(curr);     // O(1)
+      if (neighbors.empty()) {
+        break;
+      }
+      curr = neighbors[int_dist(gen) % neighbors.size()];                               // O(1)
     }
   }
-}
-
-bool is_better(const packing_set& solution_set, const uint64_t& prev, const bool& weighted) {
-  if (weighted) {
-    return solution_set.get_weight() > prev;
-  }
-  return solution_set.get_size() > prev;
 }
