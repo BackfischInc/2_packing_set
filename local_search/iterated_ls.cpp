@@ -21,6 +21,7 @@ void iterated_local_search(packing_set& solution_set, const csr_graph& graph, co
   std::uniform_real_distribution real_dist(0.005, 0.1);
 
   iteration_queue queue(graph.amount_nodes(), args.queue_size * 100);
+  swap_workspace swap_state(graph.amount_nodes());
   std::vector<uint64_t> set_nodes;
   set_nodes.reserve(16);
   uint64_t best_result = weighted ? solution_set.get_weight() : solution_set.get_size();
@@ -40,7 +41,7 @@ void iterated_local_search(packing_set& solution_set, const csr_graph& graph, co
 
     solution_set.begin_transaction();
     perturb_solution(graph, solution_set, queue, max_node_amount, set_nodes, int_dist, real_dist, gen);
-    maximize_solution(graph, solution_set, set_nodes, queue, weighted, do_2_1_swaps);
+    maximize_solution(graph, solution_set, set_nodes, queue, weighted, do_2_1_swaps, swap_state);
 
     if (weighted ? solution_set.get_weight() > best_result : solution_set.get_size() > best_result) {     // O(1)
       best_result = weighted ? solution_set.get_weight() : solution_set.get_size();                       // O(1)

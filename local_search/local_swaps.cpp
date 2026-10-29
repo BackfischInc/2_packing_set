@@ -7,7 +7,8 @@
 // each iteration: O(n * deg^5)
 void maximize_solution(const csr_graph& graph, packing_set& solution_set,
                        std::vector<uint64_t>& set_nodes,
-                       iteration_queue& queue, const bool& weighted, const bool& do_2_1_swaps) {
+                       iteration_queue& queue, const bool weighted, const bool do_2_1_swaps,
+                       swap_workspace& workspace) {
   bool swap_occurred = true;
 
   while (swap_occurred) {                                                                                    // O(?)
@@ -16,7 +17,7 @@ void maximize_solution(const csr_graph& graph, packing_set& solution_set,
 
     for (const uint64_t& curr: queue.curr_nodes()) {                                                         // O(n)
       if (do_2_1_swaps && solution_set.get_value(curr)) {                                                    // O(1)
-        swap_occurred |= find_2_1_swap(curr, graph, solution_set, queue, weighted);                    // O(deg^5)
+        swap_occurred |= find_2_1_swap(curr, graph, solution_set, queue, weighted, workspace);          // O(deg^5)
       } else {
         swap_occurred |= try_auto_include(curr, graph, solution_set, set_nodes, queue, weighted);   // O(deg²)
       }
@@ -57,27 +58,22 @@ bool try_auto_include(const uint64_t& curr, const csr_graph& graph, packing_set&
 
 // O(deg^5)
 bool find_2_1_swap(const uint64_t& curr, const csr_graph& graph, packing_set& solution_set,
-                   iteration_queue& queue, const bool& weighted) {
-  std::unordered_set<uint64_t> pot_nodes;
-  pot_nodes.reserve(graph.get_neighbors(curr).size() * 2 + 1);
+                   iteration_queue& queue, const bool weighted, swap_workspace& workspace) {
+  workspace.begin();
+  const auto candidates = graph.get_square_neighbors(curr);
 
-  for (const uint64_t& neighbor: graph.get_neighbors(curr)) {                                       // O(deg)
-    if (has_potential(neighbor, curr, graph, solution_set)) {                                  // O(deg)
-      pot_nodes.insert(neighbor);                                                                   // O(1)
+  for (const uint64_t neighbor : graph.get_neighbors(curr)) {                                      // O(deg)
+    if (has_potential(neighbor, curr, graph, solution_set)) {                                      // O(deg)
+      workspace.add(neighbor);                                                                     // O(1)
     }
   }
 
-  for (const uint64_t& neighbor: graph.get_neighbors(curr)) {                                       // O(deg)
-    for (const uint64_t& pot_node: graph.get_neighbors(neighbor)) {                                 // O(deg)
-      if (!pot_nodes.contains(pot_node)) {                                                          // O(deg)
-        if (has_potential(pot_node, curr, graph, solution_set)) {                                   // O(deg)
-          if (try_swap(pot_node, curr, pot_nodes, graph, solution_set, queue, weighted)) {    // O(deg³)
-            return true;
-          }
-
-          pot_nodes.insert(pot_node);                                                               // O(1)
-        }
+  for (const uint64_t pot_node : candidates) {                                                     // O(square-degree)
+    if (!workspace.contains(pot_node) && has_potential(pot_node, curr, graph, solution_set)) {     // O(deg)
+      if (try_swap(pot_node, curr, workspace.candidates, graph, solution_set, queue, weighted)) {   // O(deg³)
+        return true;
       }
+      workspace.add(pot_node);                                                                      // O(1)
     }
   }
 
@@ -85,7 +81,7 @@ bool find_2_1_swap(const uint64_t& curr, const csr_graph& graph, packing_set& so
 }
 
 // O(deg³)
-bool try_swap(const uint64_t& node, const uint64_t& curr, const std::unordered_set<uint64_t>& pot_neighbors,
+bool try_swap(const uint64_t& node, const uint64_t& curr, std::span<const uint64_t> pot_neighbors,
               const csr_graph& graph, packing_set& solution_set,
               iteration_queue& queue, const bool& weighted) {
   for (const uint64_t& v: pot_neighbors) {                                                           // O(deg)

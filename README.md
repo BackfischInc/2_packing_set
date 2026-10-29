@@ -147,6 +147,35 @@ Rollback is therefore proportional to the number of distinct modified
 vertices, rather than requiring new graph traversals for every changed
 solution vertex.
 
+### 14. Reused 2-to-1 swap candidate storage
+
+Files: `local_search/local_swaps.hpp`, `local_search/local_swaps.cpp`,
+`local_search/iterated_ls.cpp`
+
+The 2-to-1 search previously allocated and populated a new hash table for
+every solution vertex examined. A reusable `swap_workspace` now owns the
+candidate vector and a generation-mark array. Each search clears the vector by
+length and advances a generation counter, so duplicate detection is expected
+`O(1)` without allocating buckets or nodes in the hot loop.
+
+The workspace is created once per ILS run and passed through local
+maximization. This preserves the same candidate ordering semantics while
+reducing allocation pressure and improving cache locality. Candidate discovery
+also reuses the graph's cached distance-two CSR span instead of rescanning
+every neighbor-of-neighbor during each swap search.
+
+### 15. Improved Release build configuration
+
+File: `CMakeLists.txt`
+
+The project no longer overwrites global `CMAKE_CXX_FLAGS`. Release optimization
+flags are scoped to the executable and include `-O3` and `-DNDEBUG`. CMake also
+checks whether the active toolchain supports interprocedural optimization and
+enables link-time optimization for Release builds when available.
+
+This allows Debug and other configurations to retain their intended flags,
+while Release builds can inline and optimize across translation units.
+
 ## Behavior intentionally retained
 
 - The solver still uses iterated local search.
